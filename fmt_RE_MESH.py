@@ -1551,6 +1551,19 @@ def UVSLoadModel(data, mdlList):
 		bs.seek(pos)
 	return 1
 	
+class blendShapePosition():
+	def __init__(self, b):
+		b = int.from_bytes(b,"little",signed=False)
+		self.z = b>>21
+		self.y = b>>11 & 0x3ff
+		self.x = b & 0x7ff
+
+
+	def toBytes(self):
+		b = (self.z&0x7ff)<<21|(self.y&0x3ff)<<11|self.x&0x7ff
+		return b.to_bytes(4,"little")
+
+
 class meshFile(object): 
 
 	def __init__(self, data):
@@ -2052,16 +2065,18 @@ class meshFile(object):
 		bonesOffs = bs.readUInt64()
 		if sGameName != "RE7":
 			topologyOffs = bs.readUInt64()
+		else:
+			topologyOffs = 0
 			
 		value = (myDict["value"] if "value" in myDict else {}) if 'myDict' in locals() else {}
 			
 		bShapesHdrOffs = bs.readUInt64()
 		floatsHdrOffs = bs.readUInt64()
 		vBuffHdrOffs = bs.readUInt64()
-		ukn3 = bs.readUInt64()
+		bShapeUnknownOffs = bs.readUInt64()
 		nodesIndicesOffs = bs.readUInt64()
 		boneIndicesOffs = bs.readUInt64()
-		bshapesIndicesOffs = bs.readUInt64()
+		bShapesIndicesOffs = bs.readUInt64()
 		namesOffs = bs.readUInt64()
 		
 		if LOD1Offs:
@@ -2170,6 +2185,160 @@ class meshFile(object):
 				print("Names:")
 				print(names)
 				
+			if floatsHdrOffs:
+				bs.seek(floatsHdrOffs)
+				count = bs.readUInt64()
+				offset = bs.readUInt64()
+				bs.seek(offset)
+				floatsTable = []
+				for i in range(count):
+					a = []
+					for j in range(2):
+						x = bs.readFloat()
+						y = bs.readFloat()
+						z = bs.readFloat()
+						w = bs.readFloat()
+						a.append([x,y,z,w])
+					floatsTable.append(a)
+
+			if topologyOffs:
+				groupIDs = []
+				allNums = []
+				for i in range(countArray[0]): # LODGroups
+					allNums.append({"verts":0,"faces":0})
+					meshVertexInfo = []
+					bs.seek(offsetInfo[i])
+					numOffsets = bs.readUByte()
+					bs.seek(3,1)
+					uknFloat = bs.readUInt()
+					offsetSubOffsets = bs.readUInt64()
+					bs.seek(offsetSubOffsets)
+					
+					meshOffsetInfo = []
+					
+					for j in range(numOffsets):
+						meshOffsetInfo.append(bs.readUInt64())
+					
+					for j in range(numOffsets): # MainMeshes
+						bs.seek(meshOffsetInfo[j])
+						meshVertexInfo.append([bs.readUByte(), bs.readUByte(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt()]) #GroupID, NumMesh, unused, unused, numVerts, numFaces
+						groupIDs.append(meshVertexInfo[len(meshVertexInfo)-1][0])
+						submeshData = []
+						for k in range(meshVertexInfo[j][1]):
+							if sGameName == "RERT" or sGameName == "REVerse" or sGameName == "MHRise" or sGameName == "RE8":
+								submeshData.append([bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt64(), groupIDs[len(groupIDs)-1]]) 
+							else:
+								submeshData.append([bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt(), self.groupIDs[len(groupIDs)-1]]) #0 MaterialID, 1 faceCount, 2 indexBufferStartIndex, 3 vertexStartIndex
+						
+						submeshDataArr.append(submeshData)
+						
+						for k in range(meshVertexInfo[j][1]): # Submeshes
+							numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
+							numFaces = submeshData[k][1]//3
+							allNums[-1]["verts"] += numVerts
+							allNums[-1]["faces"] += numFaces
+
+				bs.seek(topologyOffs)
+				count = bs.readUInt64()
+				offset = bs.readUInt64()
+				bs.seek(offset)
+				offsets = []
+				topologyData = []
+				for i in range(count):
+					offsets.append(bs.readUInt64())
+				for i,offset in enumerate(offsets):
+					topologyData.append({"vertsTable":[],"facesTable":[]})
+					bs.seek(offset)
+					vertsTableOffset = bs.readUInt64()
+					facesOffset = bs.readUInt64()
+					bs.seek(vertsTableOffset)
+					for j in range(allNums[i]["verts"]):
+						d = bs.readUInt()
+						topologyData[-1]["vertsTable"].append(d)
+					allNumVerts = len(topologyData[-1]["vertsTable"])
+					bs.seek(facesOffset)
+					for submeshData in submeshDataArr[i]:
+						topologyData[-1]["facesTable"].append([])
+						bs.seek(facesOffset + submeshData[2] * 4)
+						for j in range(submeshData[1]//3):
+							c = []
+							for k in range(3):
+								b = bs.readUInt()
+								a = b&0x3fffff
+								b = b >> 22
+								c.append([a,b])
+							topologyData[-1]["facesTable"][-1].append(c)
+
+				submeshDataArr = []
+
+			if bShapesIndicesOffs != 0:
+				bs.seek(bShapeUnknownOffs)
+				count = bs.readUInt64()
+				offset = bs.readUInt64()
+				bs.seek(offset)
+				bShapeUnknownTable = []
+				for i in range(count):
+					bShapeUnknownTable.append(bs.readUByte())
+
+				bs.seek(bShapesHdrOffs)
+				LodCount = bs.readUInt64()
+				offset = bs.readUInt64()
+
+				bs.seek(offset)
+				offsets = []
+				bShapeLodData = []
+				for i in range(LodCount):
+					offsets.append(bs.readUInt64())
+
+				numBlends = 0
+				for i,offset in enumerate(offsets):
+					bShapeLodData.append({"verts":[],"unkTable":[]})
+					bs.seek(offset)
+					unk = bs.readUInt64()
+					bs.readUInt64()
+					ofs0 = bs.readUInt64()
+					ofs1 = bs.readUInt64()
+					ofs2 = bs.readUInt64()
+					ofs3 = bs.readUInt64()
+					bs.seek(ofs0)
+					bShapeLodData[i]["unk0"] = bs.readUInt()
+					bShapeLodData[i]["numVerts"] = bs.readUInt()
+					bs.readUShort()
+					bShapeLodData[i]["numBlends"] = bs.readUShort()
+					bShapeLodData[i]["unk1"] = bs.readUInt()
+					numBlends += bShapeLodData[i]["numBlends"]
+
+					bs.seek(ofs1)
+					bShapeLodData[i]["xScalePlus"]  = bs.readFloat()
+					bShapeLodData[i]["yScalePlus"]  = bs.readFloat()
+					bShapeLodData[i]["zScalePlus"]  = bs.readFloat()
+					bs.seek(4,NOESEEK_REL)
+					bShapeLodData[i]["xScaleMinus"] = bs.readFloat()
+					bShapeLodData[i]["yScaleMinus"] = bs.readFloat()
+					bShapeLodData[i]["zScaleMinus"] = bs.readFloat()
+
+					bs.seek(ofs2)
+					bShapeLodData[i]["unk2"] = bs.readInt()
+
+					bs.seek(ofs3)
+					for j in range(bShapeLodData[i]["numBlends"]):
+						bShapeLodData[i]["unkTable"].append(bs.readInt())
+
+				blendRemapTable = []
+				blendNames = []
+				bs.seek(bShapesIndicesOffs)
+				for i in range(numBlends):
+					blendRemapTable.append(bs.readUShort())
+				for i in range(numBlends):
+					blendNames.append(names[blendRemapTable[i]])
+
+				bs.seek(blendshapesOffset+vertexStartIndex)
+				for i in range(len(bShapeLodData)):
+					for j in range(bShapeLodData[i]["numBlends"]):
+						bShapeLodData[i]["verts"].append( [] )
+						for k in range(bShapeLodData[i]["numVerts"]):
+							bShapeLodData[i]["verts"][j].append( bs.readFloat() )
+
 			bs.seek(nodesIndicesOffs) #material indices
 			matIndices =[]
 			for i in range(matCount):
