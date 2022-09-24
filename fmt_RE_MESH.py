@@ -66,6 +66,7 @@ import re
 import copy
 import noewin
 from noewin import user32, gdi32, kernel32
+from struct import pack, unpack
 
 def registerNoesisTypes():
 
@@ -1554,12 +1555,14 @@ def UVSLoadModel(data, mdlList):
 class blendShapePosition():
 	def __init__(self, b):
 		b = int.from_bytes(b,"little",signed=False)
-		self.z = b>>21
-		self.y = b>>11 & 0x3ff
-		self.x = b & 0x7ff
-
+		self.z = (b>>21) - 1023
+		self.y = (b>>11 & 0x3ff) - 511
+		self.x = (b & 0x7ff) - 1023
 
 	def toBytes(self):
+		z = self.z + 1023
+		y = self.y + 511
+		x = self.x + 1023
 		b = (self.z&0x7ff)<<21|(self.y&0x3ff)<<11|self.x&0x7ff
 		return b.to_bytes(4,"little")
 
@@ -2073,7 +2076,7 @@ class meshFile(object):
 		bShapesHdrOffs = bs.readUInt64()
 		floatsHdrOffs = bs.readUInt64()
 		vBuffHdrOffs = bs.readUInt64()
-		bShapeUnknownOffs = bs.readUInt64()
+		unknownTableOffs = bs.readUInt64()
 		nodesIndicesOffs = bs.readUInt64()
 		boneIndicesOffs = bs.readUInt64()
 		bShapesIndicesOffs = bs.readUInt64()
@@ -2091,6 +2094,15 @@ class meshFile(object):
 				print("Count Array")
 				print(countArray)
 		
+		if unknownTableOffs:
+			bs.seek(unknownTableOffs)
+			count = bs.readUInt64()
+			offset = bs.readUInt64()
+			bs.seek(offset)
+			unknownTable = []
+			for i in range(count//4):
+				unknownTable.append(bs.readFloat())
+
 		bs.seek(vBuffHdrOffs)
 		if sGameName == "RE7":
 			vertBuffSize = bs.readUInt()
@@ -2271,15 +2283,7 @@ class meshFile(object):
 
 				submeshDataArr = []
 
-			if bShapesIndicesOffs != 0:
-				bs.seek(bShapeUnknownOffs)
-				count = bs.readUInt64()
-				offset = bs.readUInt64()
-				bs.seek(offset)
-				bShapeUnknownTable = []
-				for i in range(count):
-					bShapeUnknownTable.append(bs.readUByte())
-
+			if bShapesIndicesOffs:
 				bs.seek(bShapesHdrOffs)
 				LodCount = bs.readUInt64()
 				offset = bs.readUInt64()
@@ -2301,7 +2305,7 @@ class meshFile(object):
 					ofs2 = bs.readUInt64()
 					ofs3 = bs.readUInt64()
 					bs.seek(ofs0)
-					bShapeLodData[i]["unk0"] = bs.readUInt()
+					bShapeLodData[i]["numSkips"] = bs.readUInt()
 					bShapeLodData[i]["numVerts"] = bs.readUInt()
 					bs.readUShort()
 					bShapeLodData[i]["numBlends"] = bs.readUShort()
@@ -2309,13 +2313,16 @@ class meshFile(object):
 					numBlends += bShapeLodData[i]["numBlends"]
 
 					bs.seek(ofs1)
-					bShapeLodData[i]["xScalePlus"]  = bs.readFloat()
-					bShapeLodData[i]["yScalePlus"]  = bs.readFloat()
-					bShapeLodData[i]["zScalePlus"]  = bs.readFloat()
+					bShapeLodData[i]["max"] = {}
+					bShapeLodData[i]["max"]["minus"] = {}
+					bShapeLodData[i]["max"]["minus"]["x"] = bs.readFloat()
+					bShapeLodData[i]["max"]["minus"]["y"] = bs.readFloat()
+					bShapeLodData[i]["max"]["minus"]["z"] = bs.readFloat()
 					bs.seek(4,NOESEEK_REL)
-					bShapeLodData[i]["xScaleMinus"] = bs.readFloat()
-					bShapeLodData[i]["yScaleMinus"] = bs.readFloat()
-					bShapeLodData[i]["zScaleMinus"] = bs.readFloat()
+					bShapeLodData[i]["max"]["plus"] = {}
+					bShapeLodData[i]["max"]["plus"]["x"] = bs.readFloat()
+					bShapeLodData[i]["max"]["plus"]["y"] = bs.readFloat()
+					bShapeLodData[i]["max"]["plus"]["z"] = bs.readFloat()
 
 					bs.seek(ofs2)
 					bShapeLodData[i]["unk2"] = bs.readInt()
@@ -2323,6 +2330,9 @@ class meshFile(object):
 					bs.seek(ofs3)
 					for j in range(bShapeLodData[i]["numBlends"]):
 						bShapeLodData[i]["unkTable"].append(bs.readInt())
+
+					if not bImportAllLODs:
+						break
 
 				blendRemapTable = []
 				blendNames = []
@@ -2333,11 +2343,33 @@ class meshFile(object):
 					blendNames.append(names[blendRemapTable[i]])
 
 				bs.seek(blendshapesOffset+vertexStartIndex)
+				l = 0
 				for i in range(len(bShapeLodData)):
+					bShapeLodData[i]["name"] = blendNames[l]
+					bShapeLodData[i]["blends"] = []
+					l+=1
 					for j in range(bShapeLodData[i]["numBlends"]):
-						bShapeLodData[i]["verts"].append( [] )
+						bShapeLodData[i]["blends"].append( {} )
+						bShapeLodData[i]["blends"][-1]["verts"] = []
 						for k in range(bShapeLodData[i]["numVerts"]):
-							bShapeLodData[i]["verts"][j].append( bs.readFloat() )
+							p = blendShapePosition(bs.readBytes(4))
+							s = "plus"
+							if p.x < 0:
+								s = "minus"
+#							p.x *= bShapeLodData[i]["scale"][s]["x"]
+							p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) / 1023 )
+							s = "plus"
+							if p.y < 0:
+								s = "minus"
+#							p.y *= bShapeLodData[i]["scale"][s]["y"]
+							p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) / 511 )
+							s = "plus"
+							if p.z < 0:
+								s = "minus"
+#							p.z *= bShapeLodData[i]["scale"][s]["z"]
+							p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 1023 )
+
+							bShapeLodData[i]["blends"][-1]["verts"].append( p )
 
 			bs.seek(nodesIndicesOffs) #material indices
 			matIndices =[]
@@ -2539,6 +2571,28 @@ class meshFile(object):
 								else:
 									print("WARNING:", meshName, "Color buffer would have been read out of bounds by provided indices", "\n	Buffer Size:", len(vertexBuffer), "\n	Required Size:", offs + numVerts*4)
 								
+						if bShapesIndicesOffs:
+							if submeshData[k][3] >= bShapeLodData[i]["numSkips"]:
+								numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
+								skip = submeshData[k][3] - bShapeLodData[i]["numSkips"]
+								baseVertsBuf = bytearray()
+								vertexBuffer, noesis.RPGEODATA_FLOAT, vertElemHeaders[positionIndex][1], (vertElemHeaders[positionIndex][1] * submeshData[k][3])
+								vertsOffset = vertElemHeaders[positionIndex][1] * submeshData[k][3]
+								baseVerts = unpack("<"+str(numVerts*3)+"f",vertexBuffer[vertsOffset:vertsOffset + numVerts * 12])
+								for blendsIndex, blend in enumerate(bShapeLodData[i]["blends"]):
+									bShapeBuf = bytearray()
+									verts = blend["verts"][skip:skip+numVerts]
+									for vertsIndex in range(numVerts):
+										v = verts[vertsIndex]
+										x = v.x + baseVerts[vertsIndex*3+0]
+										y = v.y + baseVerts[vertsIndex*3+1]
+										z = v.z + baseVerts[vertsIndex*3+2]
+										bShapeBuf += pack("<3f",x,y,z)
+									rapi.rpgFeedMorphTargetPositions(bShapeBuf, noesis.RPGEODATA_FLOAT, 12)
+									rapi.rpgCommitMorphFrame(numVerts)
+
+							rapi.rpgCommitMorphFrameSet()
+
 						if submeshData[k][1] > 0:
 							bs.seek(faceBuffOffs + (submeshData[k][2] * 2))
 							indexBuffer = bs.readBytes(submeshData[k][1] * 2)
