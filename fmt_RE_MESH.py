@@ -66,7 +66,6 @@ import re
 import copy
 import noewin
 from noewin import user32, gdi32, kernel32
-from struct import pack, unpack
 
 def registerNoesisTypes():
 
@@ -1302,7 +1301,7 @@ def readUnicodeStringAt(bs, tell):
 		string.append(bs.readByte())
 		bs.seek(1,1)
 	bs.seek(pos)
-	buff = struct.pack("<" + 'b'*len(string), *string)
+	buff = noePack("<" + 'b'*len(string), *string)
 	return str(buff, 'utf-8')
 		
 def GetRootGameDir():
@@ -2578,7 +2577,7 @@ class meshFile(object):
 								baseVertsBuf = bytearray()
 								vertexBuffer, noesis.RPGEODATA_FLOAT, vertElemHeaders[positionIndex][1], (vertElemHeaders[positionIndex][1] * submeshData[k][3])
 								vertsOffset = vertElemHeaders[positionIndex][1] * submeshData[k][3]
-								baseVerts = unpack("<"+str(numVerts*3)+"f",vertexBuffer[vertsOffset:vertsOffset + numVerts * 12])
+								baseVerts = noeUnpack("<"+str(numVerts*3)+"f",vertexBuffer[vertsOffset:vertsOffset + numVerts * 12])
 								for blendsIndex, blend in enumerate(bShapeLodData[i]["blends"]):
 									bShapeBuf = bytearray()
 									verts = blend["verts"][skip:skip+numVerts]
@@ -2587,7 +2586,7 @@ class meshFile(object):
 										x = v.x + baseVerts[vertsIndex*3+0]
 										y = v.y + baseVerts[vertsIndex*3+1]
 										z = v.z + baseVerts[vertsIndex*3+2]
-										bShapeBuf += pack("<3f",x,y,z)
+										bShapeBuf += noePack("<3f",x,y,z)
 									rapi.rpgFeedMorphTargetPositions(bShapeBuf, noesis.RPGEODATA_FLOAT, 12)
 									rapi.rpgCommitMorphFrame(numVerts)
 
