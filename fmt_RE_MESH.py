@@ -4227,10 +4227,6 @@ def meshWriteModel(mdl, bs):
 						bs.writeInt(-1)
 	vertexDataEnd = bs.tell()
 
-	if hasMorphs:
-		morphsBuffStart = bs.tell()
-		bs.writeBytes(morphsBuffer)
-
 	for mesh in submeshes:
 		faceStart = bs.tell()
 		submeshFaceStride.append(faceStart - vertexDataEnd)
@@ -4242,6 +4238,10 @@ def meshWriteModel(mdl, bs):
 			bs.writeUShort(0)
 	faceDataEnd = bs.tell()
 	
+	if hasMorphs:
+		morphsBuffStart = bs.tell()
+		bs.writeBytes(morphsBuffer)
+
 	#update mainmesh and submesh headers
 	loopSubmeshCount = 0
 	for ldc in range(numLODs): 
