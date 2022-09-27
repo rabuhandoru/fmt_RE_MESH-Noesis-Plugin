@@ -1553,17 +1553,27 @@ def UVSLoadModel(data, mdlList):
 	
 class blendShapePosition():
 	def __init__(self, b):
-		b = int.from_bytes(b,"little",signed=False)
-		self.z = (b>>21) - 1023
-		self.y = (b>>11 & 0x3ff) - 511
-		self.x = (b & 0x7ff) - 1023
+		if len(b) == 4:
 
-	def toBytes(self):
-		z = self.z + 1023
-		y = self.y + 511
-		x = self.x + 1023
-		b = (self.z&0x7ff)<<21|(self.y&0x3ff)<<11|self.x&0x7ff
-		return b.to_bytes(4,"little")
+
+			b = int.from_bytes(b,"little",signed=False)
+			self.z = (b>>21) - 1023
+			self.y = (b>>11 & 0x3ff) - 511
+			self.x = (b & 0x7ff) - 1023
+
+		elif len(b) == 12:
+			f = noeUnpack("<f",b[0:4])[0]
+			f = noeUnpack("<f",b[4:8])[0]
+			self.x = noeUnpack("<b",b[8:9])[0]
+			self.y = noeUnpack("<b",b[9:10])[0]
+			self.z = noeUnpack("<b",b[10:11])[0]
+
+#	def toBytes(self):
+#		z = self.z + 1023
+#		y = self.y + 511
+#		x = self.x + 1023
+#		b = (self.z&0x7ff)<<21|(self.y&0x3ff)<<11|self.x&0x7ff
+#		return b.to_bytes(4,"little")
 
 
 class meshFile(object): 
@@ -2297,8 +2307,9 @@ class meshFile(object):
 				for i,offset in enumerate(offsets):
 					bShapeLodData.append({"verts":[],"unkTable":[]})
 					bs.seek(offset)
-					unk = bs.readUInt64()
-					bs.readUInt64()
+					unk0 = bs.readUShort()
+					bShapeLodData[i]["type"] = bs.readUShort()
+					bs.seek(12,NOESEEK_REL)
 					ofs0 = bs.readUInt64()
 					ofs1 = bs.readUInt64()
 					ofs2 = bs.readUInt64()
@@ -2308,7 +2319,7 @@ class meshFile(object):
 					bShapeLodData[i]["numVerts"] = bs.readUInt()
 					bs.readUShort()
 					bShapeLodData[i]["numBlends"] = bs.readUShort()
-					bShapeLodData[i]["unk1"] = bs.readUInt()
+					bShapeLodData[i]["unk1"] = bs.readInt()
 					numBlends += bShapeLodData[i]["numBlends"]
 
 					bs.seek(ofs1)
@@ -2341,6 +2352,10 @@ class meshFile(object):
 				for i in range(numBlends):
 					blendNames.append(names[blendRemapTable[i]])
 
+				with open(os.path.dirname(sInputName) + os.sep + os.path.basename(sInputName).split('.', 1)[0] + ".bShape.txt","wt") as f:
+					txt = "\n".join(blendNames)
+					f.write(txt)
+
 				bs.seek(blendshapesOffset+vertexStartIndex)
 				l = 0
 				for i in range(len(bShapeLodData)):
@@ -2351,22 +2366,35 @@ class meshFile(object):
 						bShapeLodData[i]["blends"].append( {} )
 						bShapeLodData[i]["blends"][-1]["verts"] = []
 						for k in range(bShapeLodData[i]["numVerts"]):
-							p = blendShapePosition(bs.readBytes(4))
-							s = "plus"
-							if p.x < 0:
-								s = "minus"
-#							p.x *= bShapeLodData[i]["scale"][s]["x"]
-							p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) / 1023 )
-							s = "plus"
-							if p.y < 0:
-								s = "minus"
-#							p.y *= bShapeLodData[i]["scale"][s]["y"]
-							p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) / 511 )
-							s = "plus"
-							if p.z < 0:
-								s = "minus"
-#							p.z *= bShapeLodData[i]["scale"][s]["z"]
-							p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 1023 )
+							if bShapeLodData[i]["type"] == 0:
+								p = blendShapePosition(bs.readBytes(4))
+								s = "plus"
+								if p.x < 0:
+									s = "minus"
+								p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) / 1023 )
+								s = "plus"
+								if p.y < 0:
+									s = "minus"
+								p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) / 511 )
+								s = "plus"
+								if p.z < 0:
+									s = "minus"
+								p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 1023 )
+
+							elif bShapeLodData[i]["type"] == 1:
+								p = blendShapePosition(bs.readBytes(12))
+								s = "plus"
+								if p.x < 0:
+									s = "minus"
+								p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) / 127 )
+								s = "plus"
+								if p.y < 0:
+									s = "minus"
+								p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) / 127 )
+								s = "plus"
+								if p.z < 0:
+									s = "minus"
+								p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 127 )
 
 							bShapeLodData[i]["blends"][-1]["verts"].append( p )
 
@@ -2571,11 +2599,10 @@ class meshFile(object):
 									print("WARNING:", meshName, "Color buffer would have been read out of bounds by provided indices", "\n	Buffer Size:", len(vertexBuffer), "\n	Required Size:", offs + numVerts*4)
 								
 						if bShapesIndicesOffs:
-							if submeshData[k][3] >= bShapeLodData[i]["numSkips"]:
-								numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
-								skip = submeshData[k][3] - bShapeLodData[i]["numSkips"]
+							skip = submeshData[k][3] - bShapeLodData[i]["numSkips"]
+							numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
+							if submeshData[k][3] >= bShapeLodData[i]["numSkips"] and skip < bShapeLodData[i]["numVerts"]:
 								baseVertsBuf = bytearray()
-								vertexBuffer, noesis.RPGEODATA_FLOAT, vertElemHeaders[positionIndex][1], (vertElemHeaders[positionIndex][1] * submeshData[k][3])
 								vertsOffset = vertElemHeaders[positionIndex][1] * submeshData[k][3]
 								baseVerts = noeUnpack("<"+str(numVerts*3)+"f",vertexBuffer[vertsOffset:vertsOffset + numVerts * 12])
 								for blendsIndex, blend in enumerate(bShapeLodData[i]["blends"]):
@@ -2590,7 +2617,7 @@ class meshFile(object):
 									rapi.rpgFeedMorphTargetPositions(bShapeBuf, noesis.RPGEODATA_FLOAT, 12)
 									rapi.rpgCommitMorphFrame(numVerts)
 
-							rapi.rpgCommitMorphFrameSet()
+								rapi.rpgCommitMorphFrameSet()
 
 						if submeshData[k][1] > 0:
 							bs.seek(faceBuffOffs + (submeshData[k][2] * 2))
@@ -3074,6 +3101,67 @@ def meshWriteModel(mdl, bs):
 			if not bReWrite:
 				showOptionsDialog()
 	
+	def createBShapeHdr(bs,morphLodsData):
+		bs.writeUInt64(len(morphLodsData))
+		bs.writeUInt64(bs.tell() + 8 * 3)
+		bs.writeUInt64(0)
+		bs.writeUInt64(0)
+
+		adrsOffs = []
+		for i in range(len(morphLodsData)):
+			adrsOffs.append(bs.tell())
+			bs.writeUInt64(0)
+		padToNextLine(bs)
+
+		adrs = []
+		for i in range(len(morphLodsData)):
+			adrs.append(bs.tell())
+			bs.writeUInt64(1)
+			bs.writeUInt64(0)
+
+			bs.writeUInt64(bs.tell() + 8 * 4)
+			bs.writeUInt64(bs.tell() + 8 * 5)
+			bs.writeUInt64(bs.tell() + 8 * 8)
+			bs.writeUInt64(bs.tell() + 8 * 9)
+
+			md = morphLodsData[i]
+			bs.writeUInt(md["numSkips"])
+			bs.writeUInt(md["numVerts"])
+			bs.writeUShort(0)
+			bs.writeUShort(md["numMorphs"])
+			bs.writeUShort(0x0)
+			bs.writeUShort(0x0)
+
+			for j in range(3):
+				bs.writeFloat(md["maxMinus"][j])
+			bs.writeUInt(0)
+
+			for j in range(3):
+				bs.writeFloat(md["maxPlus"][j])
+			bs.writeUInt(0)
+
+
+			if i == 0:
+				bs.writeInt(-1)
+				bs.writeUInt(0)
+				bs.writeUInt64(0)
+				bs.writeBytes(bytes([0xff,0xff,0xff,0xff]*md["numMorphs"]))
+			else:
+				bs.writeUInt(0)
+				bs.writeUInt(0)
+				bs.writeUInt64(0)
+				for j in range(md["numMorphs"]):
+					bs.writeInt(j)
+			padToNextLine(bs)
+
+		recOffs = bs.tell()
+		for a,o in zip(adrs,adrsOffs):
+			bs.seek(o)
+			bs.writeUInt64(a)
+		bs.seek(recOffs)
+
+
+
 	if bReWrite:
 		if noesis.optWasInvoked("-adv"): # and noesis.optWasInvoked("-noprompt"):
 			newMeshName = getExportName(rapi.getOutputName() or None)
@@ -3149,6 +3237,63 @@ def meshWriteModel(mdl, bs):
 			for i, bone in enumerate(mdl.bones):
 				if len(newSkinBoneMap) < 256:
 					newSkinBoneMap.append(i)
+
+	hasMorphs = False
+	numMorphs = 0
+	for i,mesh in enumerate(mdl.meshes):
+		if len(mesh.morphList):
+			hasMorphs = True
+			numMorphs = len(mesh.morphList)
+			morphStartIndex = i
+			break
+
+	if hasMorphs:
+		morphLodsData = []
+		morphsBuffer = bytearray()
+		morphPositions = [None] * numMorphs
+		maxPlus = [0.0,0.0,0.0]
+		maxMinus = [0.0,0.0,0.0]
+		numSkips = 0
+		for k,mesh in enumerate(mdl.meshes):
+			if len(mesh.morphList) == 0 and k < morphStartIndex:
+				numSkips += len(mesh.positions)
+			for j,m in enumerate(mesh.morphList):
+				if morphPositions[j] == None:
+					morphPositions[j] = []
+				for i,p in enumerate(m.positions):
+					p = p-mesh.positions[i]
+					morphPositions[j].append(p)
+					for i in range(3):
+						if p[i] < 0:
+							if p[i] < maxMinus[i]:
+								maxMinus[i] = p[i]
+						else:
+							if p[i] > maxPlus[i]:
+								maxPlus[i] = p[i]
+
+		for m in morphPositions:
+			for j,p in enumerate(m):
+				b = [0,0,0]
+				for i in range(3):
+					s = 1023
+					if i == 1:
+						s = 511
+					if p[i] == 0:
+						b[i] = 0
+					elif p[i] < 0:
+						b[i] = round( abs(p[i]) / maxMinus[i] * s * 0.01)
+					else:
+						b[i] = round( abs(p[i]) / maxPlus[i] * s * 0.01)
+					b[i] += s
+				b = (b[2]&0x7ff)<<21|(b[1]&0x3ff)<<11|b[0]&0x7ff
+				morphsBuffer += b.to_bytes(4,"little")
+
+		morphLodsData.append({})
+		morphLodsData[-1]["maxPlus"] = maxPlus
+		morphLodsData[-1]["maxMinus"] = maxMinus
+		morphLodsData[-1]["numSkips"] = numSkips
+		morphLodsData[-1]["numVerts"] = len(morphPositions[0])
+		morphLodsData[-1]["numMorphs"] = numMorphs
 
 	newBBOffs = 0
 	#OLD WAY (reading source file, no rewrite):
@@ -3444,7 +3589,7 @@ def meshWriteModel(mdl, bs):
 		else:
 			bs.writeUShort(0)
 		#print ("this model nodes:", len(mdl.bones) * bDoSkin + numMats)
-		bs.writeUShort(len(mdl.bones) * bDoSkin + numMats) #Node Count
+		bs.writeUShort(len(mdl.bones) * bDoSkin + numMats + numMorphs) #Node Count
 		bs.writeUInt(0) #LODGroupHash
 		LOD1Offs = 128 if (sGameName == "RERT" or sGameName == "RE8" or sGameName == "MHRise") else 136
 		
@@ -3712,10 +3857,20 @@ def meshWriteModel(mdl, bs):
 				bs.writeUShort(numMats + i)
 				boneInds.append(numMats + i)
 			padToNextLine(bs)
-		
+			
+		if hasMorphs:
+			offs = numMats
+			if bDoSkin:
+				offs += len(boneInds)
+			#write blend shapes indices:
+			newBShapesIndicesOffs = bs.tell()
+			for i in range(numMorphs): 
+				bs.writeUShort(offs + i)
+			padToNextLine(bs)
+
 		#write names offsets:
 		newNamesOffs = bs.tell()
-		nameStringsOffs = newNamesOffs + (numMats + len(mdl.bones) * bDoSkin) * 8
+		nameStringsOffs = newNamesOffs + (numMats + len(mdl.bones) * bDoSkin + numMorphs) * 8
 		while nameStringsOffs % 16 != 0:
 			nameStringsOffs += 1
 		
@@ -3723,9 +3878,23 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt64(nameStringsOffs)
 			nameStringsOffs += len(materialNames[i]) + 1
 		if bDoSkin:
-			for i in range(len(mdl.bones)): 
+			for i in range(len(mdl.bones)):
 				bs.writeUInt64(nameStringsOffs)
 				nameStringsOffs += len(bonesList[i]) + 1
+		if hasMorphs:
+			sInputName = rapi.getInputName()
+			p = os.path.dirname(sInputName) + os.sep + os.path.basename(sInputName).split('.', 1)[0] + ".bShape.txt"
+			if os.path.isfile( p ):
+				with open(p,"rt") as f:
+					morphNames = f.read().splitlines()
+			else:
+				morphNames = []
+				for i in range(numMorphs):
+					morphNames.append("frame "+str(i))
+
+			for i in range(numMorphs): 
+				bs.writeUInt64(nameStringsOffs)
+				nameStringsOffs += len(morphNames[i]) + 1
 		padToNextLine(bs)
 		
 		names = []
@@ -3737,8 +3906,16 @@ def meshWriteModel(mdl, bs):
 			for i in range(len(bonesList)): 
 				bs.writeString(bonesList[i])
 				names.append(bonesList[i])
+		if hasMorphs:
+			for i in range(len(morphNames)): 
+				bs.writeString(morphNames[i])
+				names.append(morphNames[i])
 		padToNextLine(bs)
 		
+		if hasMorphs:
+			newBShapesHdrOffs = bs.tell()
+			createBShapeHdr(bs,morphLodsData)
+
 		if bDoSkin:
 			#write bounding boxes
 			newBBOffs = bs.tell()
@@ -3763,11 +3940,16 @@ def meshWriteModel(mdl, bs):
 		#fix main header
 		bs.seek(18)
 		if sGameName == "RE7": bs.seek(-4,1)
-		bs.writeUShort(numMats + len(mdl.bones) * bDoSkin) #numNodes
+		bs.writeUShort(numMats + len(mdl.bones) * bDoSkin + numMorphs) #numNodes
 		if sGameName == "RE7": 
 			bs.seek(24,1)
 			bs.writeUInt64(bonesOffs)
 			
+		if hasMorphs:
+			bs.seek(64)
+			if sGameName == "RE7": bs.seek(-16,1)
+			bs.writeUInt(newBShapesHdrOffs)
+
 		bs.seek(72)
 		if sGameName == "RE7": bs.seek(-16,1)
 		if bDoSkin:
@@ -3781,6 +3963,11 @@ def meshWriteModel(mdl, bs):
 			bs.seek(8,1)
 			bs.writeUInt64(newVertBuffHdrOffs)
 			bs.seek(32,1)
+
+		if hasMorphs:
+			bs.seek(-8,1)
+			bs.writeUInt64(newBShapesIndicesOffs)
+
 		bs.writeUInt64(newNamesOffs)
 
 		#copy + fix vertexBufferHeader
@@ -3799,6 +3986,8 @@ def meshWriteModel(mdl, bs):
 			bs.writeShort(vertElemCount)
 			bs.writeShort(vertElemCount)
 			bs.writeUInt64(0)
+			if hasMorphs:
+				newBlendShapeBuffOffsAddr = bs.tell()
 			bs.writeInt(-newVertBuffOffs)
 			
 			if sGameName == "RERT": # and (bs.tell() % 8) != 0:
@@ -4037,7 +4226,11 @@ def meshWriteModel(mdl, bs):
 					for p, pos in enumerate(mesh.positions):
 						bs.writeInt(-1)
 	vertexDataEnd = bs.tell()
-	
+
+	if hasMorphs:
+		morphsBuffStart = bs.tell()
+		bs.writeBytes(morphsBuffer)
+
 	for mesh in submeshes:
 		faceStart = bs.tell()
 		submeshFaceStride.append(faceStart - vertexDataEnd)
@@ -4090,6 +4283,8 @@ def meshWriteModel(mdl, bs):
 		bs.writeUInt(fcBuffSize) #face buffer size
 		bs.seek(4,1) #element counts
 		bs.writeUInt64(fcBuffSize)
+		if hasMorphs:
+			newBlendShapeBuffOffsAddr = bs.tell()
 		bs.writeInt(-(vertexPosStart))
 		
 		if bReWrite:
@@ -4159,14 +4354,24 @@ def meshWriteModel(mdl, bs):
 			bitFlag = bitFlag + 0x03
 		print("Flag: ", bitFlag)
 		bs.writeUByte(bitFlag)
-	
-	#remove blendshapes offsets
-	bs.seek(64)
-	if sGameName == "RE7": bs.seek(-16,1)
-	bs.writeUInt(0)
-	bs.seek(112)
-	if sGameName == "RE7": bs.seek(-16,1)
-	bs.writeUInt(0)
+
+	if hasMorphs:
+		if not bReWrite:
+			bs.seek(bShapesHdrOffs)
+			createBShapeHdr(bs,morphLodsData)
+
+		bs.seek(newBlendShapeBuffOffsAddr)
+		adr = bs.readInt()
+		bs.seek(-4,1)
+		bs.writeUInt(morphsBuffStart+adr)
+	else:
+		#remove blendshapes offsets
+		bs.seek(64)
+		if sGameName == "RE7": bs.seek(-16,1)
+		bs.writeUInt(0)
+		bs.seek(112)
+		if sGameName == "RE7": bs.seek(-16,1)
+		bs.writeUInt(0)
 	
 	#fileSize
 	bs.seek(8)
