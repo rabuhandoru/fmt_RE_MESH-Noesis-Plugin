@@ -3271,6 +3271,12 @@ def meshWriteModel(mdl, bs):
 							if p[i] > maxPlus[i]:
 								maxPlus[i] = p[i]
 
+		for i in range(3):
+			if abs(maxPlus[i]) > abs(maxMinus[i]):
+				maxMinus[i] = -maxPlus[i]
+			elif abs(maxPlus[i]) < abs(maxMinus[i]):
+				maxPlus[i] = -maxMinus[i]
+
 		for m in morphPositions:
 			for j,p in enumerate(m):
 				b = [0,0,0]
