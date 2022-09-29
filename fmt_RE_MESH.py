@@ -3261,7 +3261,7 @@ def meshWriteModel(mdl, bs):
 				if morphPositions[j] == None:
 					morphPositions[j] = []
 				for i,p in enumerate(m.positions):
-					p = p-mesh.positions[i]
+					p = (p-mesh.positions[i]) * 0.01
 					morphPositions[j].append(p)
 					for i in range(3):
 						if p[i] < 0:
@@ -3281,9 +3281,9 @@ def meshWriteModel(mdl, bs):
 					if p[i] == 0:
 						b[i] = 0
 					elif p[i] < 0:
-						b[i] = round( abs(p[i]) / maxMinus[i] * s * 0.01)
+						b[i] = round( abs(p[i]) / maxMinus[i] * s)
 					else:
-						b[i] = round( abs(p[i]) / maxPlus[i] * s * 0.01)
+						b[i] = round( abs(p[i]) / maxPlus[i] * s)
 					b[i] += s
 				b = (b[2]&0x7ff)<<21|(b[1]&0x3ff)<<11|b[0]&0x7ff
 				morphsBuffer += b.to_bytes(4,"little")
