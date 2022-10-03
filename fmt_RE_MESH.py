@@ -4325,6 +4325,7 @@ def meshWriteModel(mdl, bs):
 	if hasMorphs:
 		morphsBuffStart = bs.tell()
 		bs.writeBytes(morphsBuffer)
+		morphsBuffEnd = bs.tell()
 
 	#update mainmesh and submesh headers
 	loopSubmeshCount = 0
@@ -4470,5 +4471,8 @@ def meshWriteModel(mdl, bs):
 	
 	#fileSize
 	bs.seek(8)
-	bs.writeUInt(faceDataEnd) 
+	if hasMorphs:
+		bs.writeUInt(morphsBuffEnd)
+	else:
+		bs.writeUInt(faceDataEnd) 
 	return 1
