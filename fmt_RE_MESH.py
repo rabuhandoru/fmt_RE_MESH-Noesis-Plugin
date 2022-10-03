@@ -1562,12 +1562,10 @@ class blendShapePosition():
 			self.y = (b>>11 & 0x3ff) - 511
 			self.x = (b & 0x7ff) - 1023
 
-		elif len(b) == 12:
-			f = noeUnpack("<f",b[0:4])[0]
-			f = noeUnpack("<f",b[4:8])[0]
-			self.x = noeUnpack("<b",b[8:9])[0]
-			self.y = noeUnpack("<b",b[9:10])[0]
-			self.z = noeUnpack("<b",b[10:11])[0]
+		elif len(b) == 8:
+			self.x = noeUnpack("<f",b[0:4])[0]
+			self.z = noeUnpack("<f",b[4:8])[0]
+			self.y = 0
 
 #	def toBytes(self):
 #		z = self.z + 1023
@@ -1575,6 +1573,11 @@ class blendShapePosition():
 #		x = self.x + 1023
 #		b = (self.z&0x7ff)<<21|(self.y&0x3ff)<<11|self.x&0x7ff
 #		return b.to_bytes(4,"little")
+
+
+class blendShapeNormal():
+	def __init__(self, b):
+		self.x,self.y,self.z = noeUnpack("<3b",b[0:3])
 
 
 class meshFile(object): 
@@ -2298,6 +2301,16 @@ class meshFile(object):
 				LodCount = bs.readUInt64()
 				offset = bs.readUInt64()
 
+				bs.seek(8,NOESEEK_REL)
+
+				unk0 = bs.readHalfFloat()
+				unk1 = bs.readHalfFloat()
+				unk2 = bs.readHalfFloat()
+
+				bs.seek(-1,NOESEEK_REL)
+
+				normalType = bs.readUByte()
+
 				bs.seek(offset)
 				offsets = []
 				bShapeLodData = []
@@ -2309,7 +2322,7 @@ class meshFile(object):
 					bShapeLodData.append({"verts":[],"unkTable":[]})
 					bs.seek(offset)
 					unk0 = bs.readUShort()
-					bShapeLodData[i]["type"] = bs.readUShort()
+					bShapeLodData[i]["formatType"] = bs.readUShort()
 					bs.seek(12,NOESEEK_REL)
 					ofs0 = bs.readUInt64()
 					ofs1 = bs.readUInt64()
@@ -2366,8 +2379,9 @@ class meshFile(object):
 					for j in range(bShapeLodData[i]["numBlends"]):
 						bShapeLodData[i]["blends"].append( {} )
 						bShapeLodData[i]["blends"][-1]["verts"] = []
+						bShapeLodData[i]["blends"][-1]["normals"] = []
 						for k in range(bShapeLodData[i]["numVerts"]):
-							if bShapeLodData[i]["type"] == 0:
+							if bShapeLodData[i]["formatType"] == 0:
 								p = blendShapePosition(bs.readBytes(4))
 								s = "plus"
 								if p.x < 0:
@@ -2381,21 +2395,25 @@ class meshFile(object):
 								if p.z < 0:
 									s = "minus"
 								p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 1023 )
-
-							elif bShapeLodData[i]["type"] == 1:
-								p = blendShapePosition(bs.readBytes(12))
+							elif bShapeLodData[i]["formatType"] == 1:
+								p = blendShapePosition(bs.readBytes(8))
 								s = "plus"
 								if p.x < 0:
 									s = "minus"
-								p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) / 127 )
+								p.x = bShapeLodData[i]["max"][s]["x"] * (abs(p.x) )
 								s = "plus"
 								if p.y < 0:
 									s = "minus"
-								p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) / 127 )
+								p.y = bShapeLodData[i]["max"][s]["y"] * (abs(p.y) )
 								s = "plus"
 								if p.z < 0:
 									s = "minus"
-								p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) / 127 )
+								p.z = bShapeLodData[i]["max"][s]["z"] * (abs(p.z) )
+
+							if normalType == 2:
+								n = blendShapeNormal(bs.read(4))
+								bShapeLodData[i]["blends"][-1]["normals"].append( n )
+
 
 							bShapeLodData[i]["blends"][-1]["verts"].append( p )
 
@@ -2607,15 +2625,22 @@ class meshFile(object):
 								vertsOffset = vertElemHeaders[positionIndex][1] * submeshData[k][3]
 								baseVerts = noeUnpack("<"+str(numVerts*3)+"f",vertexBuffer[vertsOffset:vertsOffset + numVerts * 12])
 								for blendsIndex, blend in enumerate(bShapeLodData[i]["blends"]):
-									bShapeBuf = bytearray()
+									bShapePositionsBuf = bytearray()
+									bShapeNormalsBuf = bytearray()
 									verts = blend["verts"][skip:skip+numVerts]
+									if len(blend["normals"]):
+										normals = blend["normals"][skip:skip+numVerts]
 									for vertsIndex in range(numVerts):
 										v = verts[vertsIndex]
 										x = v.x + baseVerts[vertsIndex*3+0]
 										y = v.y + baseVerts[vertsIndex*3+1]
 										z = v.z + baseVerts[vertsIndex*3+2]
-										bShapeBuf += noePack("<3f",x,y,z)
-									rapi.rpgFeedMorphTargetPositions(bShapeBuf, noesis.RPGEODATA_FLOAT, 12)
+										bShapePositionsBuf += noePack("<3f",x,y,z)
+										if len(blend["normals"]):
+											bShapeNormalsBuf += noePack("<3f",normals[vertsIndex].x,normals[vertsIndex].y,normals[vertsIndex].z)
+									rapi.rpgFeedMorphTargetPositions(bShapePositionsBuf, noesis.RPGEODATA_FLOAT, 12)
+									if len(blend["normals"]):
+										rapi.rpgFeedMorphTargetNormals(bShapeNormalsBuf, noesis.RPGEODATA_FLOAT, 12)
 									rapi.rpgCommitMorphFrame(numVerts)
 
 								rapi.rpgCommitMorphFrameSet()
