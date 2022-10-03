@@ -2903,24 +2903,26 @@ def meshWriteModel(mdl, bs):
 	def dot(v1, v2):
 		return sum(x*y for x,y in zip(v1,v2))	
 		
-	def fixForMorph(mdl):
+	def sortForMorph(meshes):
 		hasMorphs = False
 		numMorphsList = []
-		for i,mesh in enumerate(mdl.meshes):
+		for i,mesh in enumerate(meshes):
 			numMorphsList.append(len(mesh.morphList))
 			if len(mesh.morphList):
 				hasMorphs = True
 
-		if not hasMorphs:
-			return mdl
+		if not sum(numMorphsList):
+			return meshes
+
+		if not 0 in numMorphsList:
+			return meshes
 
 		sortedIndexTable = sorted(range(len(numMorphsList)), key=numMorphsList.__getitem__)
 		sortedMeshes = []
 		for i in sortedIndexTable:
-			sortedMeshes.append(mdl.meshes[i])
-		mdl.setMeshes(sortedMeshes)
+			sortedMeshes.append(meshesToExport[i])
 
-		return mdl
+		return meshes
 	
 	print ("		----RE Engine MESH Export v3.0 by alphaZomega----\nOpen fmt_RE_MESH.py in your Noesis plugins folder to change global exporter options.\nExport Options:\n Input these options in the `Advanced Options` field to use them, or use in CLI mode\n -flip  =  OpenGL / flipped handedness (fixes seams and inverted lighting on some models)\n -bones = save new skeleton from Noesis to the MESH file\n -bonenumbers = Export with bone numbers, to save a new bone map\n -meshfile [filename]= Input the location of a [filename] to export over that file\n -noprompt = Do not show any prompts\n -rewrite = save new MainMesh and SubMesh order (also saves bones)\n -vfx = Export as a VFX mesh\n -b = Batch conversion mode\n -adv = Show Advanced Options dialog window\n") #\n -lod = export with additional LODGroups") # 
 	
@@ -2964,18 +2966,6 @@ def meshWriteModel(mdl, bs):
 	vertElemCountB = 5	
 	newScale = (1 / fDefaultMeshScale)
 	
-	mdl = fixForMorph(mdl)
-
-	hasMorphs = False
-	numMorphs = 0
-	for i,mesh in enumerate(mdl.meshes):
-		if len(mesh.morphList):
-			hasMorphs = True
-			if numMorphs < len(mesh.morphList):
-				numMorphs = len(mesh.morphList)
-			morphStartIndex = i
-			break
-
 	#merge Noesis-split meshes back together:	
 	meshesToExport = sort_human(mdl.meshes) #sort by name (if FBX reorganized) 
 	
@@ -3297,6 +3287,18 @@ def meshWriteModel(mdl, bs):
 				if len(newSkinBoneMap) < 256:
 					newSkinBoneMap.append(i)
 
+	submeshes = sortForMorph(submeshes)
+
+	hasMorphs = False
+	numMorphs = 0
+	for i,mesh in enumerate(submeshes):
+		if len(mesh.morphList):
+			hasMorphs = True
+			if numMorphs < len(mesh.morphList):
+				numMorphs = len(mesh.morphList)
+			morphStartIndex = i
+			break
+
 	if hasMorphs:
 		morphLodsData = []
 		morphsBuffer = bytearray()
@@ -3304,7 +3306,7 @@ def meshWriteModel(mdl, bs):
 		maxPlus = [0.0,0.0,0.0]
 		maxMinus = [0.0,0.0,0.0]
 		numSkips = 0
-		for k,mesh in enumerate(mdl.meshes):
+		for k,mesh in enumerate(submeshes):
 			if len(mesh.morphList) == 0 and k < morphStartIndex:
 				numSkips += len(mesh.positions)
 			for j,m in enumerate(mesh.morphList):
