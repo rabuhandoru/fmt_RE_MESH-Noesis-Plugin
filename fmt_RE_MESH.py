@@ -2620,6 +2620,9 @@ class meshFile(object):
 						if bShapesIndicesOffs:
 							skip = submeshData[k][3] - bShapeLodData[i]["numSkips"]
 							numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
+							if k+1 == len(submeshData):
+								if numVerts < 0:
+									numVerts = len(bShapeLodData[i]["blends"][0]["verts"][skip:])
 							if submeshData[k][3] >= bShapeLodData[i]["numSkips"] and skip < bShapeLodData[i]["numVerts"]:
 								baseVertsBuf = bytearray()
 								vertsOffset = vertElemHeaders[positionIndex][1] * submeshData[k][3]
@@ -3156,7 +3159,10 @@ def meshWriteModel(mdl, bs):
 		bs.writeUInt64(len(morphLodsData))
 		bs.writeUInt64(bs.tell() + 8 * 3)
 		bs.writeUInt64(0)
-		bs.writeUInt64(0)
+		bs.writeUShort(0xeff0)
+		bs.writeUShort(0xab5d)
+		bs.writeUShort(0x0142)
+		bs.writeUShort(0)
 
 		adrsOffs = []
 		for i in range(len(morphLodsData)):
@@ -3334,19 +3340,24 @@ def meshWriteModel(mdl, bs):
 		for k,mesh in enumerate(submeshes):
 			if len(mesh.morphList) == 0 and k < morphStartIndex:
 				numSkips += len(mesh.positions)
-			for j,m in enumerate(mesh.morphList):
-				if morphPositions[j] == None:
-					morphPositions[j] = []
-				for i,p in enumerate(m.positions):
-					p = (p-mesh.positions[i]) * 0.01
-					morphPositions[j].append(p)
-					for i in range(3):
-						if p[i] < 0:
-							if p[i] < maxMinus[i]:
-								maxMinus[i] = p[i]
-						else:
-							if p[i] > maxPlus[i]:
-								maxPlus[i] = p[i]
+				continue
+			if len(mesh.morphList):
+				for j,m in enumerate(mesh.morphList):
+					if morphPositions[j] == None:
+						morphPositions[j] = []
+					for i,p in enumerate(m.positions):
+						p = (p-mesh.positions[i]) * 0.01
+						morphPositions[j].append(p)
+						for i in range(3):
+							if p[i] < 0:
+								if p[i] < maxMinus[i]:
+									maxMinus[i] = p[i]
+							else:
+								if p[i] > maxPlus[i]:
+									maxPlus[i] = p[i]
+			else:
+				for j in range(numMorphs):
+					morphPositions[j].extend( [NoeVec3([0,0,0])] * len(mesh.positions))
 
 		for i in range(3):
 			if abs(maxPlus[i]) > abs(maxMinus[i]):
