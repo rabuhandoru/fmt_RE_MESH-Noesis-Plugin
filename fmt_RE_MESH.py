@@ -3321,77 +3321,6 @@ def meshWriteModel(mdl, bs):
 				if len(newSkinBoneMap) < 256:
 					newSkinBoneMap.append(i)
 
-	submeshes = sortForMorph(submeshes)
-
-	hasMorphs = False
-	numMorphs = 0
-	for i,mesh in enumerate(submeshes):
-		if len(mesh.morphList):
-			hasMorphs = True
-			if numMorphs < len(mesh.morphList):
-				numMorphs = len(mesh.morphList)
-			morphStartIndex = i
-			break
-
-	if hasMorphs:
-		morphLodsData = []
-		morphsBuffer = bytearray()
-		morphPositions = [None] * numMorphs
-		maxPlus = [0.0,0.0,0.0]
-		maxMinus = [0.0,0.0,0.0]
-		numSkips = 0
-		for k,mesh in enumerate(submeshes):
-			if len(mesh.morphList) == 0 and k < morphStartIndex:
-				numSkips += len(mesh.positions)
-				continue
-			if len(mesh.morphList):
-				for j,m in enumerate(mesh.morphList):
-					if morphPositions[j] == None:
-						morphPositions[j] = []
-					for i,p in enumerate(m.positions):
-						p = (p-mesh.positions[i]) * 0.01
-						morphPositions[j].append(p)
-						for i in range(3):
-							if p[i] < 0:
-								if p[i] < maxMinus[i]:
-									maxMinus[i] = p[i]
-							else:
-								if p[i] > maxPlus[i]:
-									maxPlus[i] = p[i]
-			else:
-				for j in range(numMorphs):
-					morphPositions[j].extend( [NoeVec3([0,0,0])] * len(mesh.positions))
-
-		for i in range(3):
-			if abs(maxPlus[i]) > abs(maxMinus[i]):
-				maxMinus[i] = -maxPlus[i]
-			elif abs(maxPlus[i]) < abs(maxMinus[i]):
-				maxPlus[i] = -maxMinus[i]
-
-		for m in morphPositions:
-			for j,p in enumerate(m):
-				b = [0,0,0]
-				for i in range(3):
-					s = 1023
-					if i == 1:
-						s = 511
-					if p[i] == 0:
-						b[i] = 0
-					elif p[i] < 0:
-						b[i] = round( abs(p[i]) / maxMinus[i] * s)
-					else:
-						b[i] = round( abs(p[i]) / maxPlus[i] * s)
-					b[i] += s
-				b = (b[2]&0x7ff)<<21|(b[1]&0x3ff)<<11|b[0]&0x7ff
-				morphsBuffer += b.to_bytes(4,"little")
-
-		morphLodsData.append({})
-		morphLodsData[-1]["maxPlus"] = maxPlus
-		morphLodsData[-1]["maxMinus"] = maxMinus
-		morphLodsData[-1]["numSkips"] = numSkips
-		morphLodsData[-1]["numVerts"] = len(morphPositions[0])
-		morphLodsData[-1]["numMorphs"] = numMorphs
-
 	BBskipBytes = 8 if sGameName == "RE2" or sGameName == "RE3" or sGameName == "DMC5" else 0
 	newBBOffs = 0
 	
@@ -3597,6 +3526,76 @@ def meshWriteModel(mdl, bs):
 	if (len(submeshes) == 0):
 		return 0
 	
+	submeshes = sortForMorph(submeshes)
+
+	hasMorphs = False
+	numMorphs = 0
+	for i,mesh in enumerate(submeshes):
+		if len(mesh.morphList):
+			hasMorphs = True
+			if numMorphs < len(mesh.morphList):
+				numMorphs = len(mesh.morphList)
+			morphStartIndex = i
+			break
+	if hasMorphs:
+		morphLodsData = []
+		morphsBuffer = bytearray()
+		morphPositions = [None] * numMorphs
+		maxPlus = [0.0,0.0,0.0]
+		maxMinus = [0.0,0.0,0.0]
+		numSkips = 0
+		for k,mesh in enumerate(submeshes):
+			if len(mesh.morphList) == 0 and k < morphStartIndex:
+				numSkips += len(mesh.positions)
+				continue
+			if len(mesh.morphList):
+				for j,m in enumerate(mesh.morphList):
+					if morphPositions[j] == None:
+						morphPositions[j] = []
+					for i,p in enumerate(m.positions):
+						p = (p-mesh.positions[i]) * 0.01
+						morphPositions[j].append(p)
+						for i in range(3):
+							if p[i] < 0:
+								if p[i] < maxMinus[i]:
+									maxMinus[i] = p[i]
+							else:
+								if p[i] > maxPlus[i]:
+									maxPlus[i] = p[i]
+			else:
+				for j in range(numMorphs):
+					morphPositions[j].extend( [NoeVec3([0,0,0])] * len(mesh.positions))
+
+		for i in range(3):
+			if abs(maxPlus[i]) > abs(maxMinus[i]):
+				maxMinus[i] = -maxPlus[i]
+			elif abs(maxPlus[i]) < abs(maxMinus[i]):
+				maxPlus[i] = -maxMinus[i]
+
+		for m in morphPositions:
+			for j,p in enumerate(m):
+				b = [0,0,0]
+				for i in range(3):
+					s = 1023
+					if i == 1:
+						s = 511
+					if p[i] == 0:
+						b[i] = 0
+					elif p[i] < 0:
+						b[i] = round( abs(p[i]) / maxMinus[i] * s)
+					else:
+						b[i] = round( abs(p[i]) / maxPlus[i] * s)
+					b[i] += s
+				b = (b[2]&0x7ff)<<21|(b[1]&0x3ff)<<11|b[0]&0x7ff
+				morphsBuffer += b.to_bytes(4,"little")
+
+		morphLodsData.append({})
+		morphLodsData[-1]["maxPlus"] = maxPlus
+		morphLodsData[-1]["maxMinus"] = maxMinus
+		morphLodsData[-1]["numSkips"] = numSkips
+		morphLodsData[-1]["numVerts"] = len(morphPositions[0])
+		morphLodsData[-1]["numMorphs"] = numMorphs
+
 	#will be bounding box:
 	min = NoeVec4((10000.0, 10000.0, 10000.0, fDefaultMeshScale))
 	max = NoeVec4((-10000.1, -10000.1, -10000.1, fDefaultMeshScale))	
