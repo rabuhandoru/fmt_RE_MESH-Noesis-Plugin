@@ -2948,7 +2948,7 @@ def meshWriteModel(mdl, bs):
 		sortedIndexTable = sorted(range(len(numMorphsList)), key=numMorphsList.__getitem__)
 		sortedMeshes = []
 		for i in sortedIndexTable:
-			sortedMeshes.append(meshesToExport[i])
+			sortedMeshes.append(meshes[i])
 
 		return sortedMeshes
 	
