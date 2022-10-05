@@ -4496,6 +4496,11 @@ def meshWriteModel(mdl, bs):
 		if sGameName == "RE7": bs.seek(-16,1)
 		bs.writeUInt(0)
 	
+	if sGameName != "RE7" and not bReWrite:
+		if topologyOffs:
+			bs.seek(0x38)
+			bs.writeUInt64(topologyOffs)
+
 	#fileSize
 	bs.seek(8)
 	if hasMorphs:
