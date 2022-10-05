@@ -397,6 +397,13 @@ tex_format_list = {
 	0xffffffff:  "FORCE_UINT" 
 }
 
+class MeshFlag():
+	Skin         = 0x03
+	BlendShape   = 0x04
+	Topology     = 0x08
+
+	VFX          = 0x80
+
 def sort_human(List):
 	convert = lambda text: float(text) if text.isdigit() else text
 	return sorted(List, key=lambda mesh: [convert(c) for c in re.split('([-+]?[0-9]*\.?[0-9]*)', mesh.name)])
@@ -4461,6 +4468,8 @@ def meshWriteModel(mdl, bs):
 			bitFlag = bitFlag + 0x80
 		if bDoSkin: 
 			bitFlag = bitFlag + 0x03
+		if hasMorphs:
+			bitFlag |= MeshFlag.BlendShape
 		print("Flag: ", bitFlag)
 		bs.writeUByte(bitFlag)
 
@@ -4468,6 +4477,11 @@ def meshWriteModel(mdl, bs):
 		if not bReWrite:
 			bs.seek(bShapesHdrOffs)
 			createBShapeHdr(bs,morphLodsData)
+			f.seek(16)
+			bitFlag = f.readUByte()
+			bs.seek(16)
+			bitFlag |= MeshFlag.BlendShape
+			bs.writeUByte(bitFlag)
 
 		bs.seek(newBlendShapeBuffOffsAddr)
 		adr = bs.readInt()
