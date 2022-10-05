@@ -3035,6 +3035,9 @@ def meshWriteModel(mdl, bs):
 				lastMesh.setTangents((lastMesh.tangents + mesh.tangents))
 				lastMesh.setWeights((lastMesh.weights + mesh.weights))
 				lastMesh.setIndices((lastMesh.indices + tuple(newIndices)))
+				for j,morph in enumerate(lastMesh.morphList):
+					lastMesh.morphList[j].positions += mesh.morphList[j].positions
+					lastMesh.morphList[j].normals += mesh.morphList[j].normals
 				offset += len(mesh.positions)
 			
 			if i == len(mdl.meshes)-1 or mesh.name != mdl.meshes[i+1].name[5:len(mdl.meshes[i+1].name)]:
