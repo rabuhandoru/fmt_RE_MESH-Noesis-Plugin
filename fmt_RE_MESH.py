@@ -3985,6 +3985,7 @@ def meshWriteModel(mdl, bs):
 			if os.path.isfile( p ):
 				with open(p,"rt") as f:
 					morphNames = f.read().splitlines()
+				os.remove( p )
 			else:
 				morphNames = []
 				for i in range(numMorphs):
