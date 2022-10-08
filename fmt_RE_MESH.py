@@ -3560,7 +3560,7 @@ def meshWriteModel(mdl, bs):
 					if morphPositions[j] == None:
 						morphPositions[j] = []
 					for i,p in enumerate(m.positions):
-						p = (p-mesh.positions[i]) * 0.01
+						p = (p-mesh.positions[i]) * newScale
 						morphPositions[j].append(p)
 						for i in range(3):
 							if p[i] < 0:
