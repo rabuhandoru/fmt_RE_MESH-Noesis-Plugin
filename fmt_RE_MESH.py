@@ -2233,6 +2233,7 @@ class meshFile(object):
 		#print (vertElemHdrOffs, vertBuffOffs, uknVB, vertBuffSize, faceBuffOffs, vertElemCountA, vertElemCountB)
 		vertexBuffer = bs.readBytes(vertBuffSize)
 		submeshDataArr = []
+		topologyDataArr = []
 		
 		if LOD1Offs:	
 			
@@ -2288,76 +2289,6 @@ class meshFile(object):
 						w = bs.readFloat()
 						a.append([x,y,z,w])
 					floatsTable.append(a)
-
-			if topologyOffs:
-				groupIDs = []
-				allNums = []
-				for i in range(countArray[0]): # LODGroups
-					allNums.append({"verts":0,"faces":0})
-					meshVertexInfo = []
-					bs.seek(offsetInfo[i])
-					numOffsets = bs.readUByte()
-					bs.seek(3,1)
-					uknFloat = bs.readUInt()
-					offsetSubOffsets = bs.readUInt64()
-					bs.seek(offsetSubOffsets)
-					
-					meshOffsetInfo = []
-					
-					for j in range(numOffsets):
-						meshOffsetInfo.append(bs.readUInt64())
-					
-					for j in range(numOffsets): # MainMeshes
-						bs.seek(meshOffsetInfo[j])
-						meshVertexInfo.append([bs.readUByte(), bs.readUByte(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt()]) #GroupID, NumMesh, unused, unused, numVerts, numFaces
-						groupIDs.append(meshVertexInfo[len(meshVertexInfo)-1][0])
-						submeshData = []
-						for k in range(meshVertexInfo[j][1]):
-							if sGameName == "RERT" or sGameName == "REVerse" or sGameName == "MHRise" or sGameName == "RE8":
-								submeshData.append([bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt64(), groupIDs[len(groupIDs)-1]]) 
-							else:
-								submeshData.append([bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt(), self.groupIDs[len(groupIDs)-1]]) #0 MaterialID, 1 faceCount, 2 indexBufferStartIndex, 3 vertexStartIndex
-						
-						submeshDataArr.append(submeshData)
-						
-						for k in range(meshVertexInfo[j][1]): # Submeshes
-							numVerts = submeshData[k+1][3] - submeshData[k][3] if k+1 < len(submeshData) else meshVertexInfo[j][4] - submeshData[k][3]
-							numFaces = submeshData[k][1]//3
-							allNums[-1]["verts"] += numVerts
-							allNums[-1]["faces"] += numFaces
-
-				bs.seek(topologyOffs)
-				count = bs.readUInt64()
-				offset = bs.readUInt64()
-				bs.seek(offset)
-				offsets = []
-				topologyData = []
-				for i in range(count):
-					offsets.append(bs.readUInt64())
-				for i,offset in enumerate(offsets):
-					topologyData.append({"vertsTable":[],"facesTable":[]})
-					bs.seek(offset)
-					vertsTableOffset = bs.readUInt64()
-					facesOffset = bs.readUInt64()
-					bs.seek(vertsTableOffset)
-					for j in range(allNums[i]["verts"]):
-						d = bs.readUInt()
-						topologyData[-1]["vertsTable"].append(d)
-					allNumVerts = len(topologyData[-1]["vertsTable"])
-					bs.seek(facesOffset)
-					for submeshData in submeshDataArr[i]:
-						topologyData[-1]["facesTable"].append([])
-						bs.seek(facesOffset + submeshData[2] * 4)
-						for j in range(submeshData[1]//3):
-							c = []
-							for k in range(3):
-								b = bs.readUInt()
-								a = b&0x3fffff
-								b = b >> 22
-								c.append([a,b])
-							topologyData[-1]["facesTable"][-1].append(c)
-
-				submeshDataArr = []
 
 			if bShapesIndicesOffs:
 				bs.seek(bShapesHdrOffs)
@@ -2590,7 +2521,45 @@ class meshFile(object):
 							submeshData.append([bs.readUShort(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt(), self.groupIDs[len(self.groupIDs)-1]]) #0 MaterialID, 1 faceCount, 2 indexBufferStartIndex, 3 vertexStartIndex
 					
 					submeshDataArr.append(submeshData)
-					
+
+					if topologyOffs:
+						topologyData = []
+						for k in range(meshVertexInfo[j][1]):
+							numFaces	 = submeshData[k][2]
+							facesBefore  = submeshData[k][3]
+							vertsBefore  = submeshData[k][4]
+							uknSubmeshInt1 = submeshData[k][5]
+							numVerts = submeshData[k+1][4] - vertsBefore if k+1 < len(submeshData) else meshVertexInfo[j][4] - vertsBefore
+
+							bs.seek(topologyOffs)
+							count = bs.readUInt64()
+							if count > i:
+								offset = bs.readUInt64()
+								bs.seek(offset)
+								bs.seek(i*8,NOESEEK_REL)
+								offset = bs.readUInt64()
+
+								topologyData.append({"vertsTable":[],"facesTable":[]})
+								bs.seek(offset)
+								vertsTableOffset = bs.readUInt64()
+								facesOffset = bs.readUInt64()
+								bs.seek(vertsTableOffset)
+								bs.seek(vertsBefore*4,NOESEEK_REL)
+								for _ in range(numVerts):
+									d = bs.readUInt()
+									topologyData[-1]["vertsTable"].append(d)
+								bs.seek(facesOffset)
+								bs.seek(facesBefore*4,NOESEEK_REL)
+								for _ in range(numFaces//3):
+									c = []
+									for _ in range(3):
+										b = bs.readUInt()
+										a = b&0x3fffff
+										b = b >> 22
+										c.append([a,b])
+									topologyData[-1]["facesTable"].append(c)
+						topologyDataArr.append(topologyData)
+
 					for k in range(meshVertexInfo[j][1]): # Submeshes
 						
 						mainMeshNo = self.groupIDs[len(self.groupIDs)-1] if bReadGroupIds else j+1
