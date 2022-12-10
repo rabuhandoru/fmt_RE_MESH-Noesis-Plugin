@@ -1,7 +1,7 @@
 #RE Engine [PC] - ".mesh" plugin for Rich Whitehouse's Noesis
-#v3.02 (October 8, 2022)
+#v3.03e (November 27, 2022)
 #Authors: alphaZomega, Gh0stblade 
-#Special thanks: Chrrox 
+#Special thanks: Chrrox, SilverEzredes 
 
 #Options: These are global options that change or enable/disable certain features
 
@@ -12,7 +12,7 @@ bRE2Export 					= True					#Enable or disable export of mesh.1808312334 and tex.
 bRE3Export 					= True					#Enable or disable export of mesh.1902042334 and tex.190820018 from the export list
 bDMCExport 					= True					#Enable or disable export of mesh.1808282334 and tex.11 from the export list
 bRE7Export 					= True					#Enable or disable export of mesh.32 and tex.8 from the export list
-bREVExport 					= False					#Enable or disable export of mesh.2010231143 from the export list (and tex.30)
+bREVExport 					= True					#Enable or disable export of mesh.2102020001 from the export list (and tex.31)
 bRE8Export 					= True					#Enable or disable export of mesh.2101050001 from the export list (and tex.30)
 bMHRiseExport 				= False					#Enable or disable export of mesh.2008058288 from the export list (and tex.28) 
 bMHRiseSunbreakExport 		= True					#Enable or disable export of mesh.2109148288 from the export list (and tex.28)
@@ -82,13 +82,13 @@ def registerNoesisTypes():
 		noesis.addOption(handle, "-vfx", "Export as VFX mesh", 0)
 		return handle
 		
-	handle = noesis.register("RE Engine MESH [PC]", ".1902042334;.1808312334;.1808282334;.2008058288;.2010231143;.2101050001;.2109108288;.2109148288;.220128762;.220721329;.32;.NewMesh")
+	handle = noesis.register("RE Engine MESH [PC]", ".1902042334;.1808312334;.1808282334;.2008058288;.2010231143;.2101050001;.2109108288;.2109148288;.220128762;.220721329;.2102020001;.32;.NewMesh")
 	noesis.setHandlerTypeCheck(handle, meshCheckType)
 	noesis.setHandlerLoadModel(handle, meshLoadModel)
 	noesis.addOption(handle, "-noprompt", "Do not prompt for MDF file", 0)
 	noesis.setTypeSharedModelFlags(handle, (noesis.NMSHAREDFL_WANTGLOBALARRAY))
 	
-	handle = noesis.register("RE Engine Texture [PC]", ".10;.190820018;.11;.8;.28;.stm;.30;.34;.35;.36")
+	handle = noesis.register("RE Engine Texture [PC]", ".10;.190820018;.11;.8;.28;.stm;.30;.31;.34;.35;.36")
 	noesis.setHandlerTypeCheck(handle, texCheckType)
 	noesis.setHandlerLoadRGBA(handle, texLoadDDS)
 
@@ -126,23 +126,24 @@ def registerNoesisTypes():
 		noesis.setHandlerWriteModel(handle, meshWriteModel)
 		addOptions(handle)
 		
-	if bREVExport or bRE8Export:
-		handle = noesis.register("RE8 / ReVerse Texture [PC]", ".30")
-		noesis.setHandlerTypeCheck(handle, texCheckType)
-		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
-		
-	if bREVExport:
-		handle = noesis.register("ReVerse MESH", (".2010231143"))
-		noesis.setHandlerTypeCheck(handle, meshCheckType)
-		noesis.setHandlerWriteModel(handle, meshWriteModel)
-		addOptions(handle)
-		
 	if bRE8Export:
+		handle = noesis.register("RE8 Texture [PC]", ".30")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA)
 		handle = noesis.register("RE8 MESH", (".2101050001"))
 		noesis.setHandlerTypeCheck(handle, meshCheckType)
 		noesis.setHandlerWriteModel(handle, meshWriteModel)
 		addOptions(handle)
 		
+	if bREVExport:
+		handle = noesis.register("REVerse Texture [PC]", ".31")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA)
+		handle = noesis.register("ReVerse MESH", (".2102020001"))
+		noesis.setHandlerTypeCheck(handle, meshCheckType)
+		noesis.setHandlerWriteModel(handle, meshWriteModel)
+		addOptions(handle)
+			
 	if bMHRiseExport or bMHRiseSunbreakExport:
 		handle = noesis.register("MHRise Texture [PC]", ".28;.stm")
 		noesis.setHandlerTypeCheck(handle, texCheckType)
@@ -237,7 +238,7 @@ formats = {
 	"DMC5":			{ "modelExt": ".1808282334", "texExt": ".11", 		 "mmtrExt": ".1808168797", "nDir": "x64", "mdfExt": ".mdf2.10" },
 	"MHRise":		{ "modelExt": ".2008058288", "texExt": ".28", 		 "mmtrExt": ".2109301553", "nDir": "stm", "mdfExt": ".mdf2.19" },
 	"MHRSunbreak":	{ "modelExt": ".2109148288", "texExt": ".28", 		 "mmtrExt": ".220427553",  "nDir": "stm", "mdfExt": ".mdf2.23" },
-	"REVerse":		{ "modelExt": ".2010231143", "texExt": ".30", 		 "mmtrExt": ".2011178797", "nDir": "stm", "mdfExt": ".mdf2.19" },
+	"REVerse":		{ "modelExt": ".2102020001", "texExt": ".31", 		 "mmtrExt": ".2108110001", "nDir": "stm", "mdfExt": ".mdf2.20" },
 	"RERT": 		{ "modelExt": ".2109108288", "texExt": ".34", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21" },
 	"RE7RT": 		{ "modelExt": ".220128762",  "texExt": ".35", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21" },
 	"SF6": 			{ "modelExt": ".220721329",  "texExt": ".36", 		 "mmtrExt": ".220720447",  "nDir": "stm", "mdfExt": ".mdf2.31" },
@@ -621,41 +622,20 @@ def readTextureData(texData, mipWidth, mipHeight, format):
 	
 	fmtName = tex_format_list[format] if format in tex_format_list else ""
 	
-	if format == 29 or  format == 28:
-		#fmtName = ("r32g32b32a32")
-		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, "r32g32b32a32", 1)
-	elif format == 61:
-		#fmtName = ("r8")
-		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, "r8")
-	elif format == 10:
-		#fmtName = ("r16g16b16a16")
-		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, "r16g16b16a16")
-	elif format == 2:
-		#fmtName = ("r32g32b32a32")
-		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, "r32g32b32a32", 1)
-	#elif format == 28:
-	#	print ("FOURCC_ATI1")
-	#	texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_ATI1)
 	if format == 71 or format == 72: #ATOS
-		#fmtName = ("FOURCC_DXT1")
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_DXT1)
 	elif format == 77 or format == 78 or fmtName.find("BC3") != -1: #BC3
-		#fmtName = ("FOURCC_BC3")
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_BC3)
 	elif format == 80 or fmtName.find("BC4") != -1: #BC4 wetmasks
-		#fmtName = ("FOURCC_BC4")
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_BC4)
 	elif format == 83 or fmtName.find("BC5") != -1: #BC5
-		#fmtName = ("FOURCC_BC5")
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_BC5)
 		texData = rapi.imageEncodeRaw(texData, mipWidth, mipHeight, "r16g16")
 		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, "r16g16")
 	elif format == 95 or format == 96 or fmtName.find("BC6") != -1:
-		#fmtName = ("FOURCC_BC6H")
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_BC6H)
 	elif format == 98 or format == 99 or fmtName.find("BC7") != -1:
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_BC7)
-		#fmtName = ("FOURCC_BC7")
 	elif re.search("[RB]\d\d?", fmtName):
 		fmtName = fmtName.split("_")[0].lower()
 		texData = rapi.imageDecodeRaw(texData, mipWidth, mipHeight, fmtName)
@@ -1446,7 +1426,7 @@ def forceFindTexture(FileName, startExtension=""):
 			ext = ".28"
 		elif i == 8:
 			sGameName = "REVerse"
-			ext = ".30"
+			ext = ".31"
 
 		texFile = LoadExtractedDir() + FileName + ext
 		#print ("texFile:", texFile)
@@ -2087,7 +2067,7 @@ class meshFile(object):
 			sGameName = "DMC5"
 		elif sInputName.find(".1902042334") != -1:  #386270720
 			sGameName = "RE3"
-		elif sInputName.find(".2010231143") != -1:
+		elif meshVersion == 21011200 or sInputName.find(".2102020001") != -1:
 			sGameName = "REVerse"
 		elif meshVersion == 2020091500 or sInputName.find(".2101050001") != -1:
 			sGameName = "RE8"
@@ -2631,6 +2611,9 @@ class meshFile(object):
 								rapi.rpgBindBoneIndexBufferOfs(vertexBuffer, noesis.RPGEODATA_UBYTE, bytesPerVert, 24 + addBytes + (vertsBefore * bytesPerVert), 8)
 								rapi.rpgBindBoneWeightBufferOfs(vertexBuffer, noesis.RPGEODATA_UBYTE, bytesPerVert, 32 + addBytes + (vertsBefore * bytesPerVert), 8)
 						else:
+							
+							thisNumVerts = numVerts - vertsBefore
+							
 							if positionIndex != -1:
 								rapi.rpgBindPositionBufferOfs(vertexBuffer, noesis.RPGEODATA_FLOAT, vertElemHeaders[positionIndex][1], (vertElemHeaders[positionIndex][1] * vertsBefore))
 							
@@ -2668,10 +2651,11 @@ class meshFile(object):
 								
 							if colorIndex != -1 and bColorsEnabled:
 								offs = vertElemHeaders[colorIndex][2] + (vertElemHeaders[colorIndex][1] * vertsBefore)
-								if offs + numVerts*4 < len(vertexBuffer):
+								if offs + thisNumVerts*4 <= len(vertexBuffer):
 									rapi.rpgBindColorBufferOfs(vertexBuffer, noesis.RPGEODATA_UBYTE, vertElemHeaders[colorIndex][1], offs, 4)
 								else:
-									print("WARNING:", meshName, "Color buffer would have been read out of bounds by provided indices", "\n	Buffer Size:", len(vertexBuffer), "\n	Required Size:", offs + numVerts*4)
+									print(offs, thisNumVerts*4, thisNumVerts)
+									print("WARNING:", meshName, "Color buffer would have been read out of bounds by provided indices", "\n	Buffer Size:", len(vertexBuffer), "\n	Required Size:", offs + thisNumVerts*4)
 								
 						if bShapesIndicesOffs:
 							skip = vertsBefore - bShapeLodData[i]["numSkips"]
@@ -2723,14 +2707,7 @@ class meshFile(object):
 				mdl.setBones(self.boneList)
 				mdl.setModelMaterials(NoeModelMaterials(self.texList, self.matList))
 				mdlList.append(mdl)
-				'''
-				#check vertex component's normals on import (MHRise Sunbreak em077_00.mesh)::
-				for m, mesh in enumerate(mdl.meshes):
-					for u, uv in enumerate(mesh.uvs):
-						if uv[0] == 0.79638671875  and uv[1] == 0.830078125:
-							print(mesh.name, len(mesh.positions), "Vert", u, "\nPosition:", mesh.positions[u][0], mesh.positions[u][1], mesh.positions[u][2])
-							print("Normal:",   mesh.tangents[u][0], mesh.tangents[u][1], mesh.tangents[u][2], mesh.tangents[u][3])'''
-							
+				
 				if not bImportAllLODs:
 					break
 				
@@ -3009,7 +2986,7 @@ def meshWriteModel(mdl, bs):
 
 		return sortedMeshes
 	
-	print ("		----RE Engine MESH Export v3.02 by alphaZomega----\nOpen fmt_RE_MESH.py in your Noesis plugins folder to change global exporter options.\nExport Options:\n Input these options in the `Advanced Options` field to use them, or use in CLI mode\n -flip  =  OpenGL / flipped handedness (fixes seams and inverted lighting on some models)\n -bones = save new skeleton from Noesis to the MESH file\n -bonenumbers = Export with bone numbers, to save a new bone map\n -meshfile [filename]= Input the location of a [filename] to export over that file\n -noprompt = Do not show any prompts\n -rewrite = save new MainMesh and SubMesh order (also saves bones)\n -vfx = Export as a VFX mesh\n -b = Batch conversion mode\n -adv = Show Advanced Options dialog window\n") #\n -lod = export with additional LODGroups") # 
+	print ("		----RE Engine MESH Export v3.03e by alphaZomega----\nOpen fmt_RE_MESH.py in your Noesis plugins folder to change global exporter options.\nExport Options:\n Input these options in the `Advanced Options` field to use them, or use in CLI mode\n -flip  =  OpenGL / flipped handedness (fixes seams and inverted lighting on some models)\n -bones = save new skeleton from Noesis to the MESH file\n -bonenumbers = Export with bone numbers, to save a new bone map\n -meshfile [filename]= Input the location of a [filename] to export over that file\n -noprompt = Do not show any prompts\n -rewrite = save new MainMesh and SubMesh order (also saves bones)\n -vfx = Export as a VFX mesh\n -b = Batch conversion mode\n -adv = Show Advanced Options dialog window\n") #\n -lod = export with additional LODGroups") # 
 	
 	ext = os.path.splitext(rapi.getOutputName())[1]
 	RERTBytes = 0
@@ -3019,7 +2996,7 @@ def meshWriteModel(mdl, bs):
 		sGameName = "DMC5"
 	elif ext.find(".1902042334") != -1:
 		sGameName = "RE3"
-	elif ext.find(".2010231143") != -1:
+	elif ext.find(".2102020001") != -1:
 		sGameName = "REVerse"
 	elif ext.find(".2101050001") != -1:
 		sGameName = "RE8"
@@ -3027,7 +3004,7 @@ def meshWriteModel(mdl, bs):
 		sGameName = "RERT"
 		RERTBytes = 8
 	elif ext.find(".2109148288") != -1: #MHRise Sunbreak
-		#sGameName = "MHRise"
+		realGameName = "MHRise Sunbreak"
 		sGameName = "RERT"
 		RERTBytes = 8
 	elif ext.find(".2008058288") != -1: #Vanilla MHRise
@@ -3038,7 +3015,7 @@ def meshWriteModel(mdl, bs):
 		bReWrite = False #currently disabled for RE7
 		return 0
 		
-	print ("\n				  ", sGameName, "\n")
+	print ("\n				  ", realGameName if 'realGameName' in locals() else sGameName, "\n")
 	
 	bDoUV2 = False
 	bDoSkin = False
@@ -3179,10 +3156,14 @@ def meshWriteModel(mdl, bs):
 			else:
 				submeshes.append(copy.copy(obj))
 		if bReWrite and not bDoSkin: #if still true
-			for mesh in submeshes:
-				if len(mesh.weights) > 0:
-					bDoSkin = True
-					break
+			submeshBoneCount = 0
+			for bone in mdl.bones:
+				for mesh in submeshes:
+					if bone.name == mesh.name: #fbx is stupid and adds submeshes as bones to boneless meshes
+						submeshBoneCount = submeshBoneCount + 1
+						break
+			if len(mdl.bones) > 0 and submeshBoneCount != len(submeshes):
+				bDoSkin = True
 					
 	#Prompt for source mesh to export over / export options:
 	def showOptionsDialog():
@@ -3731,6 +3712,8 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt(386270720) #version no
 		elif sGameName == "RE8":
 			bs.writeUInt(2020091500)
+		elif sGameName == "REVerse":
+			bs.writeUInt(21011200)
 		elif sGameName == "RE7":
 			bs.writeUInt(352921600)
 		elif sGameName == "MHRise":
@@ -3747,7 +3730,7 @@ def meshWriteModel(mdl, bs):
 		#print ("this model nodes:", len(mdl.bones) * bDoSkin + numMats)
 		bs.writeUShort(len(mdl.bones) * bDoSkin + numMats + numMorphs) #Node Count
 		bs.writeUInt(0) #LODGroupHash
-		LOD1Offs = 128 if (sGameName == "RERT" or sGameName == "RE8" or sGameName == "MHRise") else 136
+		LOD1Offs = 128 if (sGameName == "RERT" or sGameName == "RE8" or sGameName == "MHRise" or sGameName == "REVerse") else 136
 		
 		bs.writeUInt64(LOD1Offs) #LODs address
 		bs.writeUInt64(0) #Shadow LODs address

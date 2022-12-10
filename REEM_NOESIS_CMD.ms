@@ -1,7 +1,8 @@
+try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 (
 	--RE Engine MESH Noesis CMD tool
-	--Version: v0.39
-	--Last Release: October 8 2022
+	--Version: v0.41
+	--Last Release: October 24 2022
 	--Authors: alphaZomega, mariokart64n
 	
 	local noesis_path = 		"C:\\Program Files\\Noesis\\Noesis.exe"
@@ -10,6 +11,7 @@
 	local re3_pak_location = 	"F:\\modmanager\\REtool\\RE3_chunk_000\\natives\\stm\\"
 	local re7_pak_location = 	"F:\\modmanager\\REtool\\RE7_chunk_000\\natives\\x64\\"
 	local re8_pak_location = 	"F:\\modmanager\\REtool\\RE8_chunk_000\\natives\\stm\\"
+	local reve_pak_location = 	"F:\\modmanager\\REtool\\REVE_chunk_000\\natives\\stm\\"
 	local re2rt_pak_location = 	"F:\\modmanager\\REtool\\RE2rt_chunk_000\\natives\\stm\\"
 	local re3rt_pak_location = 	"F:\\modmanager\\REtool\\RE3rt_chunk_000\\natives\\stm\\"
 	local re7rt_pak_location = 	"F:\\modmanager\\REtool\\RE7rt_chunk_000\\natives\\stm\\"
@@ -97,11 +99,12 @@
 		)  
 	) 
 	
-	local gamesList = #( "MHRSunbreak", "RE2", "RE3", "DMC5", "RE8", "RE7 RT", "RE7", "RE2 RT", "RE3 RT", "MHRise", "SF6")
+	local gamesList = #( "REVerse", "MHRSunbreak", "RE2", "RE3", "DMC5", "RE8", "RE7 RT", "RE7", "RE2 RT", "RE3 RT", "MHRise", "SF6")
 	local currentItem = "MHRSunbreak"
-	local currentItemIdx = 1
-	local currentItemIdx2 = 1
+	local currentItemIdx = 2
+	local currentItemIdx2 = 2
 	local games_to_mdfExts = losDic()
+	
 	for key in gamesList do
 		games_to_mdfExts.setK key ( 
 			case key of (
@@ -116,10 +119,11 @@
 				"MHRise": ".19"
 				"MHRSunbreak": ".23"
 				"SF6": ".31"
+				"REVerse": ".20"
 				default: ""
 			)
 		)
-
+	
 	fn getAlignedOffset tell alignment = (
 		local offset = case alignment of  (
 			2: tell + (mod tell 2)
@@ -411,10 +415,10 @@
 		return 0
 	)
 	
-	try(destroydialog formNoesisCMD; clearlistener())catch()
+	
 	--print current_pak_location
 	
-	rollout formNoesisCMD "REEM Noesis 0.39" (
+	rollout formNoesisCMD "REEM Noesis 0.41" (
 		
 		group "Import" (
 			button btn_import "Import Mesh" align:#center
@@ -507,6 +511,7 @@
 					"MHRise": ".mesh.2008058288"
 					"MHRSunbreak": ".mesh.2109148288"
 					"SF6": ".mesh.220721329"
+					"REVerse": ".mesh.2102020001"
 					default: ""
 				)
 			current_pak_location = case currentItem of 
@@ -522,6 +527,7 @@
 					"MHRise": mhrise_pak_location
 					"MHRSunbreak": mhrise_pak_location
 					"SF6": sf6_pak_location
+					"REVerse": reve_pak_location
 					default: ""
 				)
 			
@@ -591,14 +597,16 @@
 						
 						if doesFileExist outtxt_path then (
 							local fs = openFile outtxt_path
-							local noesisOutput = "\n"
-							while not eof fs do
-							   noesisOutput = noesisOutput + (readline fs) + "\n"
-							print noesisOutput
-							close fs
-							deletefile outtxt_path
-							if findstring noesisOutput "Traceback" != undefined then 
-								return false
+							if fs != undefined then (
+								local noesisOutput = "\n"
+								while not eof fs do
+								   noesisOutput = noesisOutput + (readline fs) + "\n"
+								print noesisOutput
+								close fs
+								deletefile outtxt_path
+								if findstring noesisOutput "Traceback" != undefined then 
+									return false
+							)
 						)
 						
 						waitForFileUnlock(fbx_path)
@@ -627,7 +635,8 @@
 						
 						if thisExt != lastExt then (
 							lastExt = thisExt
-							changeCurrentGame ( findItem #(".2109148288", ".1808312334", ".1902042334", ".1808282334", ".2101050001", ".220128762", ".32", ".2109108288", ".2109108288", ".2008058288", ".220721329") lastExt)
+							--This list must have the same order as gamesList:
+							changeCurrentGame ( findItem #(".2102020001", ".2109148288", ".1808312334", ".1902042334", ".1808282334", ".2101050001", ".220128762", ".32", ".2109108288", ".2109108288", ".2008058288", ".220721329") lastExt)
 						)
 						
 						if chk_bnNumbers.checked then (				
@@ -707,10 +716,11 @@
 		)
 		
 		on formNoesisCMD open do (
-			if doesFileExist (try(noesis_path)catch("")) do (
+			changeCurrentGame currentItemIdx
+			if doesFileExist noesis_path do (
 				edt_noesis.text = noesis_path
 				)
-			if doesFileExist (try(current_pak_location)catch("")) do (
+			if doesFileExist current_pak_location do (
 				edt_scnpath.text = current_pak_location
 				)
 			)
@@ -756,6 +766,7 @@
 					"RE8": ".mesh.2101050001"
 					"MHRise": ".mesh.2008058288"
 					"MHRSunbreak": ".mesh.2109148288"
+					"REVerse": ".mesh.2102020001"
 					default: ""
 				)
 			current_extension2 = replace lbl_currentExt2.caption 1 5 ""
@@ -807,6 +818,7 @@
 			--) else messagebox "Failed to Locate Extracted Pak!"
 		)
 		
+		
 		/*
 			--Dictionary example
 			dic = losDic()  
@@ -834,7 +846,7 @@
 		
 		on btn_import pressed do (
 			if noesisComponentsFound() then (
-				cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.220721329;*.1808312334|All|*.*|"
+				cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.220721329;*.1808312334;*.2102020001|All|*.*|"
 				Import_MESH cmd undefined
 			) else (messagebox "Failed to Locate Noesis!")
 		)
@@ -855,6 +867,7 @@
 						"RE2 RT": getSaveFileName types:"RT(*.2109108288)|*.2109108288|"
 						"RE3 RT": getSaveFileName types:"RT(*.2109108288)|*.2109108288|"
 						"SF6" : getSaveFileName types:"RT(*.220721329)|*.220721329|"
+						"REVerse" : getSaveFileName types:"REVerse(*.2102020001)|*.2102020001"
 						default: getSaveFileName types:" \
 							DMC5(*.1808282334)|*.1808282334| \
 							RE2(*.1808312334)|*.1808312334| \
@@ -866,10 +879,11 @@
 							RE3 RT(*.2109108288)|*.2109108288| \
 							MHRise(*.2008058288)|*.2008058288| \
 							MHRSunbreak(*.2109148288)|*.2109148288| \
-							SF6(*.220721329)|*.220721329|"
+							SF6(*.220721329)|*.220721329| \
+							REVerse(*.2102020001)|*.2102020001| "
 					) 
 				) else
-					cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.1808312334|All|*.*|"
+					cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.1808312334;*.220721329;*.2102020001|All|*.*|"
 					
 				if cmd != undefined and cmd != "" then (
 					local fbx_path = (getFilenamePath cmd) + (getFilenameFile (getFilenameFile cmd))
@@ -878,7 +892,8 @@
 					
 					if chk_reWrite.checked then (
 						lbl_currentExt.caption = ".mesh" + (getFilenameType cmd)
-						out_path = (getFilenamePath cmd) + (getFilenameFile (getFilenameFile cmd)) + lbl_currentExt.caption
+						--out_path = (getFilenamePath cmd) + (getFilenameFile (getFilenameFile cmd)) + lbl_currentExt.caption
+						out_path = cmd
 					) else
 						out_path = (getFilenamePath cmd) + (getFilenameFile (getFilenameFile cmd)) + ".NEW.mesh" + (getFilenameType  cmd)
 						
@@ -888,8 +903,19 @@
 						format "Changing file output from % to %\n" (getFilenameFile out_path) (getFilenameFile meshPath)
 						out_path = meshPath
 					)
+					
+					for obj in selection as array where superclassof obj == GeometryClass do (
+						local parent = obj.parent
+						while parent != undefined do (
+							if superclassof parent != GeometryClass then 
+								deselect parent
+							parent = parent.parent
+						)
+					)
+					
 					originalSelection = selection as array
 					copyNodes = #()
+					
 					
 					for obj in originalSelection where obj.modifiers[#Skin] != undefined do ( 
 						try (
@@ -905,6 +931,7 @@
 							exit
 						) catch ( print "Could not select skeleton! Select bones manually before export" )
 					)
+					
 					if chk_showPlugOpt.checked then (--chk_expPrompt
 						exportFile fbx_path selectedOnly:true using:FBXEXP
 					) else (
@@ -952,12 +979,14 @@
 						
 					if doesFileExist outtxt_path then (
 						local fs = openFile outtxt_path
-						local noesisOutput = "\n"
-						while not eof fs do
-						   noesisOutput = noesisOutput + (readline fs) + "\n"
-						print noesisOutput
-						close fs
-						deletefile outtxt_path
+						if fs != undefined then (
+							local noesisOutput = "\n"
+							while not eof fs do
+							   noesisOutput = noesisOutput + (readline fs) + "\n"
+							print noesisOutput
+							close fs
+							deletefile outtxt_path
+						)
 					)
 					
 					select originalSelection
@@ -1123,6 +1152,10 @@
 		)
 		
 		on BtnAnimToBlender pressed do (
+			if not noesisComponentsFound() then (
+				messagebox "Failed to Locate Noesis!"
+				return 0
+			)
 			objSelected = selection as array
 			cmd = getSaveFileName types:"FBX animation|*.fbx|All|*.*|"
 			if cmd != undefined then (
@@ -1168,6 +1201,8 @@
 			)
 			select objSelected
 		)
+		
 	)
 	createdialog formNoesisCMD
+	--cui.RegisterDialogBar formNoesisCMD style:#(#cui_dock_all, #cui_floatable, #cui_handles)
 )
