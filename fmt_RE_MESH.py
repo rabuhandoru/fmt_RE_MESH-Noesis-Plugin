@@ -3555,22 +3555,6 @@ class meshFile(object):
 			if bDebugMESH:
 				print("Names:")
 				print(names)
-				
-#			if floatsHdrOffs:
-#				bs.seek(floatsHdrOffs)
-#				count = bs.readUInt64()
-#				offset = bs.readUInt64()
-#				bs.seek(offset)
-#				floatsTable = []
-#				for i in range(count):
-#					a = []
-#					for j in range(2):
-#						x = bs.readFloat()
-#						y = bs.readFloat()
-#						z = bs.readFloat()
-#						w = bs.readFloat()
-#						a.append([x,y,z,w])
-#					floatsTable.append(a)
 
 			if bShapesIndicesOffs:
 				sInputName = rapi.getInputName()
