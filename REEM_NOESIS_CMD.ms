@@ -1,8 +1,8 @@
 try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 (
 	--RE Engine MESH Noesis CMD tool
-	--Version: v0.43
-	--Last Release: March 10, 2023
+	--Version: v0.48
+	--Last Release: March 10, 2024
 	--Authors: alphaZomega, mariokart64n
 	
 	local noesis_path = 		"C:\\Program Files\\Noesis\\Noesis.exe"
@@ -20,6 +20,8 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 	local mhrise_pak_location = "F:\\modmanager\\REtool\\MHRise_chunk_000\\natives\\stm\\"
 	local sf6_pak_location =	"F:\\modmanager\\REtool\\SF6Beta_chunk_000\\natives\\stm\\"
 	--local rt_pak_location = 	"F:\\modmanager\\REtool\\RE2RT_chunk_000\\natives\\stm\\"
+	local aj_aat_pak_location = "F:\\modmanager\\REtool\\AJ_AAT_chunk_000\\natives\\stm\\"
+	local dd2_pak_location = "F:\\modmanager\\REtool\\DD2_chunk_000\\natives\\stm\\"
 	local show_ReWrite2 = true
 	
 	local current_pak_location = re2_pak_location
@@ -62,7 +64,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 			val = bsearch #(k) table binSort  
 			if val == undefined then return val  
 			val[2]  
-		),  
+		),
 		fn setK k v =  (  
 			val = bsearch #(k) table binSort  
 			if val == undefined then  (  
@@ -100,7 +102,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 		)  
 	) 
 	
-	local gamesList = #( "REVerse", "MHRSunbreak", "RE2", "RE3", "RE4", "DMC5", "RE8", "RE7 RT", "RE7", "RE2 RT", "RE3 RT", "MHRise", "SF6")
+	local gamesList = #( "REVerse", "MHRSunbreak", "RE2", "RE3", "RE4", "DMC5", "RE8", "RE7 RT", "RE7", "RE2 RT", "RE3 RT", "MHRise", "SF6", "AJ_AAT", "DD2")
 	local currentItem = "RE4"
 	local currentItemIdx = 5
 	local currentItemIdx2 = 5
@@ -122,6 +124,8 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 				"MHRSunbreak": ".23"
 				"SF6": ".31"
 				"REVerse": ".20"
+				"AJ_AAT": ".37"
+				"DD2": ".40"
 				default: ""
 			)
 		)
@@ -397,6 +401,26 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 		bones
 	)	
 	
+	fn addChildrentToList node nodelist = (
+		for child in node.children do (
+			if finditem nodelist child == 0 then (
+				append nodelist child
+				addChildrentToList child nodelist
+			)
+		)
+	)
+	
+	fn collectAllSkinBones node = (
+		local bones = collectSkinBones node
+		local root = bones[1]
+		while root.parent != undefined do
+			root = root.parent
+		for bone in bones do (
+			addChildrentToList bone bones
+		)
+		bones
+	)
+	
 	fn selectSkinSkeleton nodes = (
 		local originalSelection = selection as array
 		for node in nodes do (
@@ -441,18 +465,23 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 	
 	--print current_pak_location
 	
-	rollout formNoesisCMD "REEM Noesis 0.43" (
+	rollout formNoesisCMD "REEM Noesis 0.47" (
+		
+		local dist = 1.0
 		
 		group "Import" (
-			button btn_import "Import Mesh" align:#center
+			button btn_import "Import Mesh/Animation" align:#center
 			checkbox chk_resetScene "Reset On Import" checked:false align:#left
 			checkbox chk_legacyFBX "Use Legacy FBX" checked:false align:#left 
 			--checkbox chk_fbxMerge "fbxmeshmerge" checked:true align:#left tooltip:"Merges together meshes that have been split apart and have \"0001_\" before their names"
 			checkbox chk_fbxOptimize "Optimize FBX" checked:true 
 			--checkbox chk_importMDF "Import Materials" checked:false
 			checkbox chk_folder "Import Folder" checked:false align:#left
-			checkbox chk_populateBones "Populate Bones Lists" checked:false align:#left
+			checkbox chk_populateBones "Populate Bones Lists" checked:true align:#left
 			button btn_import_SCN "Import SCN File" tooltip:"Tries to load positioned mesh files from a SCN file"
+			button BtnImportSkeleton "Import Bone Positions" tooltip:"Loads bone positions from the chosen MESH file onto the selected bones (by name)"
+			checkbox chk_tPose "T-Pose " offset:[20,0] checked:false tooltip:"Imports the skeleton in a T-pose. Change the threshold number to adjust how close a bone may be to another bone before it is ignored by T-pose rotation"
+			edittext Flddist "" text:(dist as String) offset:[75,-20] fieldWidth:40 labelOnTop:false
 		)
 		group "Export" (
 			button btn_export "Export to Game" align:#center
@@ -501,7 +530,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 		)
 		
 		fn waitForFileUnlock file file_open_limit:30 = (
-			local i = 0
+			/*local i = 0
 			while i < file_open_limit do (
 				if (try(renameFile file (file + ".tmp"))catch(false)) do (
 					renameFile (file + ".tmp") file
@@ -509,7 +538,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 				)
 				sleep 1
 				i += 1
-			)
+			)*/
 		)
 		
 		fn noesisComponentsFound = (
@@ -521,43 +550,48 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 		)
 		
 		fn changeCurrentGame listIndex = (
-			currentItem = gamesList[listIndex]
-			currentItemIdx = listIndex
-			lbl_currentExt.caption = case currentItem of 
-				(
-					"RE2 RT": ".mesh.2109108288"
-					"RE3 RT": ".mesh.2109108288"
-					"RE2": ".mesh.1808312334"
-					"RE3": ".mesh.1902042334"
-					"RE4": ".mesh.221108797"
-					"DMC5": ".mesh.1808282334"
-					"RE7": ".mesh.32"
-					"RE7 RT": ".mesh.220128762"
-					"RE8": ".mesh.2101050001"
-					"MHRise": ".mesh.2008058288"
-					"MHRSunbreak": ".mesh.2109148288"
-					"SF6": ".mesh.220721329"
-					"REVerse": ".mesh.2102020001"
-					default: ""
-				)
-			current_pak_location = case currentItem of 
-				(
-					"RE2 RT": re2rt_pak_location
-					"RE3 RT": re3rt_pak_location
-					"RE2": re2_pak_location
-					"RE3": re3_pak_location
-					"RE4": re4_pak_location
-					"DMC5": dmc5_pak_location
-					"RE7": re7_pak_location
-					"RE7 RT": re7rt_pak_location
-					"RE8": re8_pak_location
-					"MHRise": mhrise_pak_location
-					"MHRSunbreak": mhrise_pak_location
-					"SF6": sf6_pak_location
-					"REVerse": reve_pak_location
-					default: ""
-				)
-			
+			try (
+				currentItem = gamesList[listIndex]
+				currentItemIdx = listIndex
+				lbl_currentExt.caption = case currentItem of 
+					(
+						"RE2 RT": ".mesh.2109108288"
+						"RE3 RT": ".mesh.2109108288"
+						"RE2": ".mesh.1808312334"
+						"RE3": ".mesh.1902042334"
+						"RE4": ".mesh.221108797"
+						"DMC5": ".mesh.1808282334"
+						"RE7": ".mesh.32"
+						"RE7 RT": ".mesh.220128762"
+						"RE8": ".mesh.2101050001"
+						"MHRise": ".mesh.2008058288"
+						"MHRSunbreak": ".mesh.2109148288"
+						"SF6": ".mesh.230110883"
+						"REVerse": ".mesh.2102020001"
+						"AJ_AAT": ".mesh.230612127"
+						"DD2": ".mesh.231011879"
+						default: ""
+					)
+				current_pak_location = case currentItem of 
+					(
+						"RE2 RT": re2rt_pak_location
+						"RE3 RT": re3rt_pak_location
+						"RE2": re2_pak_location
+						"RE3": re3_pak_location
+						"RE4": re4_pak_location
+						"DMC5": dmc5_pak_location
+						"RE7": re7_pak_location
+						"RE7 RT": re7rt_pak_location
+						"RE8": re8_pak_location
+						"MHRise": mhrise_pak_location
+						"MHRSunbreak": mhrise_pak_location
+						"SF6": sf6_pak_location
+						"REVerse": reve_pak_location
+						"AJ_AAT": aj_aat_pak_location
+						"DD2": dd2_pak_location
+						default: ""
+					)
+			) catch ( undefined )
 			list_gameSelection.selection = currentItemIdx
 			current_extension = replace lbl_currentExt.caption 1 5 ""
 			edt_scnpath.text = current_pak_location
@@ -583,6 +617,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 					cmd = files[f]
 					
 					local thisExt = getFilenameType cmd
+					local orig_path = cmd
 					local key = getFilenameFile (getFilenameFile cmd)
 					local old_obj = undefined
 					local already_imported = false
@@ -663,16 +698,20 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 						if thisExt != lastExt then (
 							lastExt = thisExt
 							--This list must have the same order as gamesList:
-							changeCurrentGame ( findItem #(".2102020001", ".2109148288", ".1808312334", ".1902042334", ".221108797", ".1808282334", ".2101050001", ".220128762", ".32", ".2109108288", ".2109108288", ".2008058288", ".220721329") lastExt) 
+							changeCurrentGame ( findItem #(".2102020001", ".2109148288", ".1808312334", ".1902042334", ".221108797", ".1808282334", ".2101050001", ".220128762", ".32", ".2109108288", ".2109108288", ".2008058288", ".230110883", ".230612127", ".231011879", ".231011879") lastExt)  
 						)
 						
-						if chk_bnNumbers.checked then (				
-								
-							local objSelected = selection as array
+						local objSelected = selection as array
+						local meshes = for obj in objSelected where (classof obj == Editable_mesh) collect obj 
+						
+						if (findstring orig_path ".motlist.") != undefined then
+							
+							delete meshes[1] --delete dummy
+							
+						else if chk_bnNumbers.checked then (
+							
 							if setCoords != undefined and not already_imported then
 								names_to_objects.setK key objSelected 
-								
-							local meshes = for obj in objSelected where (classof obj == Editable_mesh) collect obj 
 							local bones = for obj in objSelected where (superclassof obj == Helper or classof obj == BoneGeometry) collect obj 
 							for bone in bones do hide bone
 							container = Point size:1.0
@@ -689,18 +728,21 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 								container.transform.controller.value *= (matrix3 [1,0,0] [0,0,1] [0,-1,0] [0,0,0])
 								container.pos.controller.value *= 100
 							)
+							
 							for mesh in meshes do ( -- create MainMesh containers
 								fs = filterstring mesh.name "_"
-								if appendIfUnique uniqueNames (fs[1] + "_" + fs[2] + "_" + fs[3] + "_" + fs[4]) then (
-									mainmesh = Point size:1.0
-									mainmesh.name = (fs[1] + "_" + fs[2] + "_" + fs[3] + "_" + fs[4])
-									mainmesh.parent = container
-									mainmesh.transform = container.transform
-									append mainmeshes mainmesh
+								if fs.count >= 3 then (
+									if appendIfUnique uniqueNames (fs[1] + "_" + fs[2] + "_" + fs[3] + "_" + fs[4]) then (
+										mainmesh = Point size:1.0
+										mainmesh.name = (fs[1] + "_" + fs[2] + "_" + fs[3] + "_" + fs[4])
+										mainmesh.parent = container
+										mainmesh.transform = container.transform
+										append mainmeshes mainmesh
+									)
+									if setCoords != undefined then 
+										mesh.transform = container.transform
+									mesh.parent = mainmeshes[mainmeshes.count]
 								)
-								if setCoords != undefined then 
-									mesh.transform = container.transform
-								mesh.parent = mainmeshes[mainmeshes.count]
 							)
 							
 							--skelColor = (random 128 255) (random 128 255) (random 128 255)
@@ -711,7 +753,14 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 								select mesh
 								max modify mode
 								
-								mesh.modifiers[#Skin].bone_Limit = ( if lastExt==".220721329" then 6 else 8 )
+								mesh.modifiers[#Skin].bone_Limit = ( if lastExt==".230110883" then 6 else 8 )
+								
+								local found_colon = false
+								for b = 1 to bones.count do 
+									if (findString bones[b].name ":") != undefined then (
+										found_colon = true
+										exit
+									)
 								
 								for b = 1 to bones.count do (
 									if b == 1 and setCoords != undefined then
@@ -725,7 +774,8 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 										if (getuserprop bones[b] "Bone_Number") == undefined do setuserprop bones[b] "Bone_Number" fs[1]
 										if (getuserprop bones[b] "Bone_Name") == undefined do setuserprop bones[b] "Bone_Name" fs[2]
 									)
-									if chk_populateBones.checked then (
+									if chk_populateBones.checked and found_colon then (
+										--print "Found bone numbers, sorting bones..."
 										bnIdx = findBoneIdx mesh.modifiers[#Skin] bones[b].name
 										if bnIdx == 0 then ( -- add bones to Skin that have numbers but are not currently in
 											if fs.count > 1 then 
@@ -742,6 +792,10 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 					chk_showPlugOpt.checked = false
 				)
 			) else print("Not found: " + cmd)
+		)
+		
+		on Flddist entered num do (
+			dist = num as float
 		)
 		
 		on formNoesisCMD open do (
@@ -797,6 +851,8 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 					"MHRise": ".mesh.2008058288"
 					"MHRSunbreak": ".mesh.2109148288"
 					"REVerse": ".mesh.2102020001"
+					"AJ_AAT": ".mesh.231011879"
+					"DD2": ".mesh.231011879"
 					default: ""
 				)
 			current_extension2 = replace lbl_currentExt2.caption 1 5 ""
@@ -876,7 +932,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 		
 		on btn_import pressed do (
 			if noesisComponentsFound() then (
-				cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.221108797;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.220721329;*.1808312334;*.2102020001|All|*.*|"
+				cmd = getOpenFileName types:"RE Engine MESH/MOTLIST|*.1808282334;*.1902042334;*.221108797;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.220721329;*.1808312334;*.2102020001;*.230110883;*.230612127;*.231011879;*.60;*.85;*.99;*.484;*.486;*.524;*.528;*.653;*.663;*.750;*.751|All|*.*|"
 				Import_MESH cmd undefined
 			) else (messagebox "Failed to Locate Noesis!")
 		)
@@ -897,8 +953,10 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 						"MHRSunbreak": getSaveFileName types:"MHRSunbreak(*.2109148288)|*.2109148288|"
 						"RE2 RT": getSaveFileName types:"RT(*.2109108288)|*.2109108288|"
 						"RE3 RT": getSaveFileName types:"RT(*.2109108288)|*.2109108288|"
-						"SF6" : getSaveFileName types:"RT(*.220721329)|*.220721329|"
+						"SF6" : getSaveFileName types:"RT(*.230110883)|*.230110883|"
 						"REVerse" : getSaveFileName types:"REVerse(*.2102020001)|*.2102020001"
+						"AJ_AAT" : getSaveFileName types: "AJ_AAT(*.230612127)|*.230612127|"
+						"DD2" : getSaveFileName types: "DD2(*.231011879)|*.231011879|"
 						default: getSaveFileName types:" \
 							DMC5(*.1808282334)|*.1808282334| \
 							RE2(*.1808312334)|*.1808312334| \
@@ -911,11 +969,13 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 							RE3 RT(*.2109108288)|*.2109108288| \
 							MHRise(*.2008058288)|*.2008058288| \
 							MHRSunbreak(*.2109148288)|*.2109148288| \
-							SF6(*.220721329)|*.220721329| \
-							REVerse(*.2102020001)|*.2102020001| "
+							SF6(*.230110883)|*.230110883| \
+							REVerse(*.2102020001)|*.2102020001| \
+							AJ_AAT(*.230612127)|*.230612127|  \
+							DD2:(*.mesh.231011879)|*231011879|"
 					) 
 				) else
-					cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.221108797;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.1808312334;*.220721329;*.2102020001|All|*.*|"
+					cmd = getOpenFileName types:"RE Engine Model|*.1808282334;*.1902042334;*.221108797;*.2010231143;*.2008058288;*.2109148288;*.2109108288;*.2101050001;*.32;*.220128762;*.1808312334;*.220721329;*.2102020001;*.230110883;*.230612127;*.231011879|All|*.*|"
 					
 				if cmd != undefined and cmd != "" then (
 					local fbx_path = (getFilenamePath cmd) + (getFilenameFile (getFilenameFile cmd))
@@ -983,6 +1043,15 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 						) catch ( print "Could not select skeleton! Select bones manually before export" )*/
 					)
 					
+					local morph_meshes = for obj in selection where superclassof obj == GeometryClass and obj.modifiers[#Morpher] != undefined and obj.modifiers[#Skin] != undefined collect obj
+					
+					for mesh in morph_meshes do (
+						local skin = mesh.modifiers[#Skin]
+						local skin_copy = copy mesh.modifiers[#Skin]
+						addModifierWithLocalData mesh skin_copy mesh mesh.modifiers[#Skin]
+						deleteModifier mesh mesh.modifiers[#Skin]
+					)
+					
 					if chk_showPlugOpt.checked then (--chk_expPrompt
 						exportFile fbx_path selectedOnly:true using:FBXEXP
 					) else (
@@ -1000,7 +1069,7 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 							+ (if chk_bnNumbers.checked then " -bonenumbers" else "") \
 							+ (if chk_showOptions.checked then " -adv" else "") \  
 							+ (if chk_doVFX.checked then " -vfx" else "") \  
-							+ (if chk_reWrite.checked then " -rewrite" else (" -meshfile \"" + cmd + "\"")) \ 
+							+ (if chk_reWrite.checked then " -rewrite" else (" -meshfile \"" + cmd + "\""))
 						)
 						
 						if chk_showCMD.checked then 
@@ -1043,6 +1112,117 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 					select originalSelection
 				)
 			) else (messagebox "Failed to Locate Noesis!")
+		)
+		
+		on BtnImportSkeleton pressed do (
+			if $ == undefined then (
+				messageBox "Need to select one or more Bones"
+				return false
+			)
+			fsource = GetOpenFileName caption:"Import Skeleton: Select *.Mesh File"  types: "MESH files (*.*)|*.*|"
+			if fsource != undefined then (
+				f = fopen fsource "rb+"
+				if f != undefined do (
+					local Type = ReadFixedString f 4
+					if Type != "MESH" do  (
+						messageBox "It is not Mesh file"
+						fclose f
+						return false
+					)
+					
+					local ver = ReadLong f
+					local isSF6 = (ver == 220822879 or ver == 220705151)
+					fseek f (if isSF6 then 32 else 24) #seek_set
+					local DataStartAddress = ReadLong f
+					fseek f (if isSF6 then 104 else 48) #seek_set
+					local BoneHeaderAddress = ReadLong f
+					fseek f (if isSF6 then 144 else 120) #seek_set
+					local NameAddressListAddress = ReadLong f
+					fseek f (DataStartAddress+1) #seek_set
+					local MatCount = ReadByte f
+					fseek f BoneHeaderAddress #seek_set
+					local BoneCount = ReadLong f
+					fseek f (BoneHeaderAddress+24) #seek_set
+					local BoneMatrixAddress0 = ReadLongLong f
+					local BoneMatrixAddress1 = ReadLongLong f			
+						
+					--BoneName	
+					fseek f (NameAddressListAddress + MatCount * 8) #seek_set
+					BoneNameAddressList = #()
+					for i=1 to BoneCount do (
+						append BoneNameAddressList (ReadLong f)	
+						ReadLong f				
+					)
+					
+					local origSelection = for s in (selection as array) collect s
+					local changedBones = selection
+					local TWMat = Matrix3 1; TWMat.row1 = [1,0,0]; TWMat.row2 = [0,0,-1]; TWMat.row3 = [0,1,0]; TWMat.row4 = [0,0,0] 
+					
+					undo on (
+						for i = 1 to changedBones.count do (
+							SubBoneName = changedBones[i].name 
+							cs = filterString SubBoneName ":"
+							if cs[2] != undefined then SubBoneName = cs[2]
+
+							local SubBoneID = -1
+							local ParentBoneID = -1	
+							local newTransform  = Matrix3 1
+							
+							for i=1 to BoneCount do (
+								fseek f (BoneNameAddressList[i]) #seek_set
+								local BoneName = readstring f	
+								if BoneName == SubBoneName then (
+									SubBoneID = i - 1
+									exit
+								)
+							)	
+							
+							if SubBoneID != -1 then (			
+								local newTransform = (Matrix3 [1,0,0] [0,0,1] [0,-1,0] [0,0,0])
+								if chk_tPose.state == false then (  
+									--BoneMatrix Global
+									fseek f (BoneMatrixAddress1) #seek_set 
+									fseek f (SubBoneID * 64) #seek_cur 
+									newTransform.row1 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row2 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row3 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row4 = [readfloat f, readfloat f, readfloat f] * 100; readfloat f
+									newTransform *= inverse TWMat
+									changedBones[i].transform = newTransform
+								) else (
+									--BoneMatrix Local
+									fseek f (BoneMatrixAddress0) #seek_set 
+									fseek f (SubBoneID * 64) #seek_cur 
+									newTransform.row1 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row2 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row3 = [readfloat f, readfloat f, readfloat f]; readfloat f
+									newTransform.row4 = [readfloat f, readfloat f, readfloat f] * 100; readfloat f
+									changedBones[i].transform = newTransform
+									if changedBones[i].parent != undefined then 
+										changedBones[i].transform *= changedBones[i].parent.transform
+									else -- rotate root bone
+										changedBones[i].transform *= inverse TWMat
+								)
+							)
+						)
+						if chk_tPose.state == true do (
+							for x = 1 to changedBones.count do (
+								if changedBones[x].parent != undefined then (
+									if (findString changedBones[x].name "ffset" != undefined) or (findString changedBones[x].name "clavicle" != undefined) or (findString changedBones[x].name "setProp" != undefined) or (findString changedBones[x].name "_s1" != undefined) or (findString changedBones[x].name "_SR" != undefined) do 
+										continue
+									local tester = distance changedBones[x] changedBones[x].parent
+									if ((dist != 0.0) and ((dist < 0) or not (tester < dist))) do
+										changedBones[x].transform = (matrix3 [1,0,0] [0,0,1] [0,-1,0] changedBones[x].transform.row4) 
+								)
+							)
+						)
+					)
+					fclose f	
+					messageBox "Bone Position(s) Imported"
+					deselect $	
+					select origSelection
+				)
+			)
 		)
 		
 		on btn_reimport pressed do (
@@ -1118,37 +1298,38 @@ try ( destroydialog formNoesisCMD; clearlistener() ) catch ()
 				messageBox "Select one (1) submesh with a Skin modifier"
 				return false
 			)
-			with redraw off (
-				local sourceMesh = $
-				local skinBoneMapS = #()
-				local sourceBones = collectSkinBones sourceMesh
-				local bHasNumbers = false
-				max modify mode
-				theSkinS = sourceMesh.modifiers[#skin]
-				if ( filterString (skinOps.GetBoneName theSkinS 1 0) ":")[2] != undefined then 
-					bHasNumbers = true
-				if bHasNumbers == true then ( --remove numbers
-					for i = 1 to (skinOps.getnumberbones theSkinS) do (
-						local boneName = skinOps.GetBoneName theSkinS i 0
-						local bs = filterString boneName ":"
-						if bs[2] == undefined then (bs[2] = getuserprop sourceBones[i] "Bone_Number")
-						if bs[2] != undefined then (
-							sourceBones[i].name = bs[2]
-							append skinBoneMapS i
-							if (getuserprop sourceBones[i] "Bone_Number") == undefined do setuserprop sourceBones[i] "Bone_Number" bs[1]
-							if (getuserprop sourceBones[i] "Bone_Name") == undefined do setuserprop sourceBones[i] "Bone_Name" bs[2]
-						)
+			local sourceMesh = $
+			local skinBoneMapS = #()
+			local sourceBones = collectAllSkinBones sourceMesh
+			
+			local bHasNumbers = false
+			local theSkinS = sourceMesh.modifiers[#skin]
+			for bone in sourceBones do
+				if ( filterString bone.name ":")[2] != undefined then 
+					( bHasNumbers = true; exit )
+			
+			max modify mode
+			if bHasNumbers then ( --remove numbers
+				for b = 1 to sourceBones.count do (
+					local bs = filterString sourceBones[b].name ":"
+					if bs[2] != undefined then (
+						sourceBones[b].name = bs[2]
+						append skinBoneMapS i
+						if (getuserprop sourceBones[b] "Bone_Number") == undefined do 
+							setuserprop sourceBones[b] "Bone_Number" bs[1]
+						if (getuserprop sourceBones[b] "Bone_Name") == undefined do 
+							setuserprop sourceBones[b] "Bone_Name" bs[2]
 					)
-				) 
-				else ( --restore numbers
-					for b = 1 to (sourceBones.count) do (
-						local BN = getuserprop sourceBones[b] "Bone_Number"
-						local prop = getuserprop sourceBones[b] "Bone_Name"
-						--if prop != undefined then ( sourceBones[b].name = prop )
-						if BN != undefined then ( sourceBones[b].name = BN + ":" + sourceBones[b].name)
-					)
-				)		
-			)
+				)
+			) else ( --restore numbers
+				for b = 1 to (sourceBones.count) do (
+					local BN = getuserprop sourceBones[b] "Bone_Number"
+					local prop = getuserprop sourceBones[b] "Bone_Name"
+					local splitted = filterString sourceBones[b].name ":"
+					if BN != undefined then 
+						sourceBones[b].name = BN + ":" + splitted[splitted.count]
+				)
+			)	
 		)
 		
 		on BtnSkinOnTop pressed do (

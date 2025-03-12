@@ -1,7 +1,12 @@
 #RE Engine [PC] - ".mesh" plugin for Rich Whitehouse's Noesis
 #Authors: alphaZomega, Gh0stblade 
-#Special thanks: Chrrox, SilverEzredes 
-Version = "v3.11 (March 10, 2023)"
+#Special thanks: Chrrox, SilverEzredes, Enaium 
+Version = "v3.28 (September 21, 2024)"
+
+#Changelog:
+#- Fixed motlist.854 reading
+
+
 
 #Options: These are global options that change or enable/disable certain features
 
@@ -16,8 +21,13 @@ bREVExport 					= True					#Enable or disable export of mesh.2102020001 from the
 bRE8Export 					= True					#Enable or disable export of mesh.2101050001 from the export list (and tex.30)
 bMHRiseExport 				= False					#Enable or disable export of mesh.2008058288 from the export list (and tex.28) 
 bMHRiseSunbreakExport 		= True					#Enable or disable export of mesh.2109148288 from the export list (and tex.28)
-bSF6Export					= True					#Enable or disable export of mesh.220721329 from the export list (and tex.36)
+bSF6Export					= True					#Enable or disable export of mesh.230110883 from the export list (and tex.143230113)
 bRE4Export					= True					#Enable or disable export of mesh.221108797 from the export list (and tex.143221013)
+bExoExport					= True					#Enable or disable export of mesh.220907984 from the export list (and tex.40)
+bApolloExport				= True					#Enable or disable export of mesh.230612127 from the export list (and tex.719230324)
+bDD2Export					= True					#Enable or disable export of mesh.231011879 from the export list (and tex.760230703)
+bDRDRExport					= True					#Enable or disable export of mesh.240424828 from the export list (and tex.240606151)
+
 
 
 #Mesh Global
@@ -48,6 +58,7 @@ bShorterNames				= True					#Imports meshes named like "LOD_1_Main_1_Sub_1" inst
 bImportMips 				= False					#Imports texture mip maps as separate images
 texOutputExt				= ".tga"				#File format used when linking FBX materials to images
 doConvertMatsForBlender		= False					#Load alpha maps as reflection maps, metallic maps as specular maps and roughness maps as bump maps for use with modified Blender FBX importer
+bNoImportMenu				= False					#Hide the import menu on loading a mesh
 
 #Export Options
 bNewExportMenu				= False					#Show a custom Noesis window on mesh export
@@ -64,6 +75,10 @@ bForceRootBoneToBone0		= True					#If the root bone is detected as the last bone
 bAddBoneNumbers 			= 2						#Adds bone numbers and colons before bone names to indicate if they are active. 0 = Off, 1 = On, 2 = Auto
 bRotateBonesUpright			= False					#Rotates bones to be upright for editing and then back to normal for exporting
 bReadGroupIds				= True					#Import/Export with the GroupID as the MainMesh number
+
+#Plugin GUI
+iListboxSize  				= 280					#The height of the list box in the plugin's import menu
+
 
 from inc_noesis import *
 from collections import namedtuple
@@ -88,17 +103,17 @@ def registerNoesisTypes():
 		noesis.addOption(handle, "-vfx", "Export as VFX mesh", 0)
 		return handle
 		
-	handle = noesis.register("RE Engine MESH [PC]", ".1902042334;.1808312334;.1808282334;.2008058288;.2102020001;.2101050001;.2109108288;.2109148288;.220128762;.220301866;.220721329;.221108797;.NewMesh")
+	handle = noesis.register("RE Engine MESH [PC]", ".1902042334;.1808312334;.1808282334;.2008058288;.2102020001;.2101050001;.2109108288;.2109148288;.220128762;.220301866;.220721329;.221108797;.220907984;.230110883;.230612127;.231011879;.240424828;.NewMesh")
 	noesis.setHandlerTypeCheck(handle, meshCheckType)
 	noesis.setHandlerLoadModel(handle, meshLoadModel)
 	noesis.addOption(handle, "-noprompt", "Do not prompt for MDF file", 0)
 	noesis.setTypeSharedModelFlags(handle, (noesis.NMSHAREDFL_WANTGLOBALARRAY))
-	
-	handle = noesis.register("RE Engine Texture [PC]", ".10;.190820018;.11;.8;.28;.stm;.30;.31;.34;.35;.36;.143221013")
+
+	handle = noesis.register("RE Engine Texture [PC]", ".10;.190820018;.11;.8;.28;.stm;.30;.31;.34;.35;.36;.40;.143221013;.143230113;.719230324;.760230703;.240606151")
 	noesis.setHandlerTypeCheck(handle, texCheckType)
 	noesis.setHandlerLoadRGBA(handle, texLoadDDS)
 
-	handle = noesis.register("RE Engine UVS [PC]", ".5;.7")
+	handle = noesis.register("RE Engine UVS [PC]", ".5;.7;.8")
 	noesis.setHandlerTypeCheck(handle, UVSCheckType)
 	noesis.setHandlerLoadModel(handle, UVSLoadModel)
 	
@@ -106,7 +121,7 @@ def registerNoesisTypes():
 	noesis.setHandlerTypeCheck(handle, SCNCheckType)
 	noesis.setHandlerLoadModel(handle, SCNLoadModel)
 	
-	handle = noesis.register("RE Engine MOTLIST [PC]", ".60;.85;.99;.484;.486;.524;.528;.653;.663")
+	handle = noesis.register("RE Engine MOTLIST [PC]", ".60;.85;.99;.484;.486;.500;.524;.528;.643;.653;.663;.750;.751;.851;.854")
 	noesis.setHandlerTypeCheck(handle, motlistCheckType)
 	noesis.setHandlerLoadModel(handle, motlistLoadModel)
 
@@ -195,10 +210,10 @@ def registerNoesisTypes():
 		addOptions(handle)
 	
 	if bSF6Export:
-		handle = noesis.register("Street Fighter 6 Texture [PC]", ".36")
+		handle = noesis.register("Street Fighter 6 Texture [PC]", ".143230113;")
 		noesis.setHandlerTypeCheck(handle, texCheckType)
 		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
-		handle = noesis.register("Street Fighter 6 Mesh", (".220721329"))
+		handle = noesis.register("Street Fighter 6 Mesh", (".230110883"))
 		noesis.setHandlerTypeCheck(handle, meshCheckType)
 		noesis.setHandlerWriteModel(handle, meshWriteModel)
 		addOptions(handle)
@@ -211,12 +226,50 @@ def registerNoesisTypes():
 		noesis.setHandlerTypeCheck(handle, meshCheckType)
 		noesis.setHandlerWriteModel(handle, meshWriteModel)
 		addOptions(handle)
+
+	if bExoExport:
+		handle = noesis.register("ExoPrimal Texture [PC]", ".40")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
+		handle = noesis.register("ExoPrimal Mesh", (".220907984"))
+		noesis.setHandlerTypeCheck(handle, meshCheckType)
+		noesis.setHandlerWriteModel(handle, meshWriteModel)
+		addOptions(handle)
+
+	if bApolloExport:
+		handle = noesis.register("Apollo Justice: Ace Attorney Trilogy Texture [PC]", ".719230324")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
+		handle = noesis.register("Apollo Justice: Ace Attorney Trilogy Mesh", (".230612127"))
+		noesis.setHandlerTypeCheck(handle, meshCheckType)
+		noesis.setHandlerWriteModel(handle, meshWriteModel)
+		addOptions(handle)
+		
+	if bDD2Export:
+		handle = noesis.register("Dragon's Dogma 2 Texture [PC]", ".760230703")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
+		handle = noesis.register("Dragon's Dogma 2 Mesh", (".231011879"))
+		noesis.setHandlerTypeCheck(handle, meshCheckType)
+		noesis.setHandlerWriteModel(handle, meshWriteModel)
+		addOptions(handle)
+		
+	if bDRDRExport:
+		handle = noesis.register("Dead Rising DR Texture [PC]", ".240606151")
+		noesis.setHandlerTypeCheck(handle, texCheckType)
+		noesis.setHandlerWriteRGBA(handle, texWriteRGBA);
+		#handle = noesis.register("Dead Rising DR Mesh", (".240424828"))
+		#noesis.setHandlerTypeCheck(handle, meshCheckType)
+		#noesis.setHandlerWriteModel(handle, meshWriteModel)
+		#addOptions(handle)
+		
 		
 	noesis.logPopup()
 	return 1
 		
 #Default global variables for internal use:
 sGameName = "RE2"
+extractedNativesPath = ""
 sExportExtension = ".1808312334"
 bWriteBones = False
 bDoVFX = False
@@ -226,19 +279,22 @@ w1 = 127
 w2 = -128
 
 formats = {
-	"RE7":			{ "modelExt": ".-1", 		 "texExt": ".8", 		 "mmtrExt": ".69", 		   "nDir": "x64", "mdfExt": ".mdf2.6",  "meshVersion": 0, "mdfVersion": 0, "mlistExt": ".60" },
-	"RE2":			{ "modelExt": ".1808312334", "texExt": ".10",		 "mmtrExt": ".1808160001", "nDir": "x64", "mdfExt": ".mdf2.10", "meshVersion": 1, "mdfVersion": 1, "mlistExt": ".85" },
-	"DMC5":			{ "modelExt": ".1808282334", "texExt": ".11", 		 "mmtrExt": ".1808168797", "nDir": "x64", "mdfExt": ".mdf2.10", "meshVersion": 1, "mdfVersion": 1, "mlistExt": ".85" },
-	"RE3": 			{ "modelExt": ".1902042334", "texExt": ".190820018", "mmtrExt": ".1905100741", "nDir": "stm", "mdfExt": ".mdf2.13", "meshVersion": 1, "mdfVersion": 2, "mlistExt": ".99" },
-	"RE8": 			{ "modelExt": ".2101050001", "texExt": ".30", 		 "mmtrExt": ".2102188797", "nDir": "stm", "mdfExt": ".mdf2.19", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".486" },
-	"MHRise":		{ "modelExt": ".2008058288", "texExt": ".28", 		 "mmtrExt": ".2109301553", "nDir": "stm", "mdfExt": ".mdf2.19", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".484" },
-	"MHRSunbreak":	{ "modelExt": ".2109148288", "texExt": ".28", 		 "mmtrExt": ".220427553",  "nDir": "stm", "mdfExt": ".mdf2.23", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".528" },
-	"REVerse":		{ "modelExt": ".2102020001", "texExt": ".31", 		 "mmtrExt": ".2108110001", "nDir": "stm", "mdfExt": ".mdf2.20", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".486" },
-	"RERT": 		{ "modelExt": ".2109108288", "texExt": ".34", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".524" },
-	"RE7RT": 		{ "modelExt": ".220128762",  "texExt": ".35", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".524" },
-	"SF6": 			{ "modelExt": ".220721329",  "texExt": ".36", 		 "mmtrExt": ".220720447",  "nDir": "stm", "mdfExt": ".mdf2.31", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".653" },
-	"ExoPrimal": 	{ "modelExt": ".220721329",  "texExt": ".36", 		 "mmtrExt": ".220720447",  "nDir": "stm", "mdfExt": ".mdf2.31", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".653" },
-	"RE4": 			{ "modelExt": ".221108797",  "texExt": ".143221013", "mmtrExt": ".221007879",  "nDir": "stm", "mdfExt": ".mdf2.32", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".663" },
+	"RE7":			{ "modelExt": ".-1", 		 "texExt": ".8", 		 "mmtrExt": ".69", 		   "nDir": "x64", "mdfExt": ".mdf2.6",  "meshVersion": 0, "mdfVersion": 0, "mlistExt": ".60", "meshMagic":352921600 },
+	"RE2":			{ "modelExt": ".1808312334", "texExt": ".10",		 "mmtrExt": ".1808160001", "nDir": "x64", "mdfExt": ".mdf2.10", "meshVersion": 1, "mdfVersion": 1, "mlistExt": ".85", "meshMagic":386270720, "motionIDsData":[24,8] },
+	"DMC5":			{ "modelExt": ".1808282334", "texExt": ".11", 		 "mmtrExt": ".1808168797", "nDir": "x64", "mdfExt": ".mdf2.10", "meshVersion": 1, "mdfVersion": 1, "mlistExt": ".85", "meshMagic":386270720, "motionIDsData":[24,8]  },
+	"RE3": 			{ "modelExt": ".1902042334", "texExt": ".190820018", "mmtrExt": ".1905100741", "nDir": "stm", "mdfExt": ".mdf2.13", "meshVersion": 1, "mdfVersion": 2, "mlistExt": ".99", "meshMagic":386270720, "motionIDsData":[24,8] },
+	"RE8": 			{ "modelExt": ".2101050001", "texExt": ".30", 		 "mmtrExt": ".2102188797", "nDir": "stm", "mdfExt": ".mdf2.19", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".486", "meshMagic":2020091500, "motionIDsData":[24,8] },
+	"MHRise":		{ "modelExt": ".2008058288", "texExt": ".28", 		 "mmtrExt": ".2109301553", "nDir": "stm", "mdfExt": ".mdf2.19", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".484", "meshMagic":21091000, "motionIDsData":[72,8] },
+	"MHRSunbreak":	{ "modelExt": ".2109148288", "texExt": ".28", 		 "mmtrExt": ".220427553",  "nDir": "stm", "mdfExt": ".mdf2.23", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".528", "meshMagic":21091000, "motionIDsData":[72,8] },
+	"ReVerse":		{ "modelExt": ".2102020001", "texExt": ".31", 		 "mmtrExt": ".2108110001", "nDir": "stm", "mdfExt": ".mdf2.20", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".500", "meshMagic":2020091500, "motionIDsData":[24,8] },
+	"RERT": 		{ "modelExt": ".2109108288", "texExt": ".34", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".524", "meshMagic":21041600, "motionIDsData":[72,8] },
+	"RE7RT": 		{ "modelExt": ".220128762",  "texExt": ".35", 		 "mmtrExt": ".2109101635", "nDir": "stm", "mdfExt": ".mdf2.21", "meshVersion": 2, "mdfVersion": 3, "mlistExt": ".524", "meshMagic":21041600, "motionIDsData":[72,8] },
+	"SF6": 			{ "modelExt": ".230110883",  "texExt": ".143230113", "mmtrExt": ".221102761",  "nDir": "stm", "mdfExt": ".mdf2.31", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".653", "meshMagic":230403828, "motionIDsData":[72,8] },
+	"ExoPrimal": 	{ "modelExt": ".220907984",  "texExt": ".40", 		 "mmtrExt": ".221007878",  "nDir": "stm", "mdfExt": ".mdf2.31", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".643", "meshMagic":220705151, "motionIDsData":[72,8] },
+	"RE4": 			{ "modelExt": ".221108797",  "texExt": ".143221013", "mmtrExt": ".221007879",  "nDir": "stm", "mdfExt": ".mdf2.32", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".663", "meshMagic":220822879, "motionIDsData":[72,8] },
+	"AJ_AAT": 		{ "modelExt": ".230612127",  "texExt": ".719230324", "mmtrExt": ".230815080",  "nDir": "stm", "mdfExt": ".mdf2.37", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".750", "meshMagic":230406984, "motionIDsData":[72,8] },
+	"DD2": 			{ "modelExt": ".231011879",  "texExt": ".760230703", "mmtrExt": ".230815080",  "nDir": "stm", "mdfExt": ".mdf2.40", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".751", "meshMagic":230517984, "motionIDsData":[72,8] },
+	"DRDR": 		{ "modelExt": ".240424828",  "texExt": ".240606151", "mmtrExt": ".240405143",  "nDir": "stm", "mdfExt": ".mdf2.40", "meshVersion": 3, "mdfVersion": 4, "mlistExt": ".854", "meshMagic":240423829, "motionIDsData":[72,8] },
 }
 
 extToFormat = { #incomplete, just testing
@@ -275,7 +331,7 @@ extToFormat["143221013"] = extToFormat["34"]
 extToFormat["28.stm"] = extToFormat["28"]
 
 
-tex_format_list = {
+texFormatNames = {
 	0: "UNKNOWN",
 	1: "R32G32B32A32_TYPELESS",
 	2: "R32G32B32A32_FLOAT",
@@ -398,12 +454,131 @@ tex_format_list = {
 	0xffffffff:  "FORCE_UINT" 
 }
 
+fmtNameToBpp = {
+    "R32G32B32A32_TYPELESS": 128,
+    "R32G32B32A32_FLOAT": 128,
+    "R32G32B32A32_UINT": 128,
+    "R32G32B32A32_SINT": 128,
+    "R32G32B32_TYPELESS": 96,
+    "R32G32B32_FLOAT": 96,
+    "R32G32B32_UINT": 96,
+    "R32G32B32_SINT": 96,
+    "R16G16B16A16_TYPELESS": 64,
+    "R16G16B16A16_FLOAT": 64,
+    "R16G16B16A16_UNORM": 64,
+    "R16G16B16A16_UINT": 64,
+    "R16G16B16A16_SNORM": 64,
+    "R16G16B16A16_SINT": 64,
+    "R32G32_TYPELESS": 64,
+    "R32G32_FLOAT": 64,
+    "R32G32_UINT": 64,
+    "R32G32_SINT": 64,
+    "R32G8X24_TYPELESS": 64,
+    "D32_FLOAT_S8X24_UINT": 64,
+    "R32_FLOAT_X8X24_TYPELESS": 64,
+    "X32_TYPELESS_G8X24_UINT": 64,
+    "Y416": 64,
+    "Y210": 64,
+    "Y216": 64,
+    "R10G10B10A2_TYPELESS": 32,
+    "R10G10B10A2_UNORM": 32,
+    "R10G10B10A2_UINT": 32,
+    "R11G11B10_FLOAT": 32,
+    "R8G8B8A8_TYPELESS": 32,
+    "R8G8B8A8_UNORM": 32,
+    "R8G8B8A8_UNORM_SRGB": 32,
+    "R8G8B8A8_UINT": 32,
+    "R8G8B8A8_SNORM": 32,
+    "R8G8B8A8_SINT": 32,
+    "R16G16_TYPELESS": 32,
+    "R16G16_FLOAT": 32,
+    "R16G16_UNORM": 32,
+    "R16G16_UINT": 32,
+    "R16G16_SNORM": 32,
+    "R16G16_SINT": 32,
+    "R32_TYPELESS": 32,
+    "D32_FLOAT": 32,
+    "R32_FLOAT": 32,
+    "R32_UINT": 32,
+    "R32_SINT": 32,
+    "R24G8_TYPELESS": 32,
+    "D24_UNORM_S8_UINT": 32,
+    "R24_UNORM_X8_TYPELESS": 32,
+    "X24_TYPELESS_G8_UINT": 32,
+    "R9G9B9E5_SHAREDEXP": 32,
+    "R8G8_B8G8_UNORM": 32,
+    "G8R8_G8B8_UNORM": 32,
+    "B8G8R8A8_UNORM": 32,
+    "B8G8R8X8_UNORM": 32,
+    "R10G10B10_XR_BIAS_A2_UNORM": 32,
+    "B8G8R8A8_TYPELESS": 32,
+    "B8G8R8A8_UNORM_SRGB": 32,
+    "B8G8R8X8_TYPELESS": 32,
+    "B8G8R8X8_UNORM_SRGB": 32,
+    "AYUV": 32,
+    "Y410": 32,
+    "YUY2": 32,
+    "P010": 24,
+    "P016": 24,
+    "R8G8_TYPELESS": 16,
+    "R8G8_UNORM": 16,
+    "R8G8_UINT": 16,
+    "R8G8_SNORM": 16,
+    "R8G8_SINT": 16,
+    "R16_TYPELESS": 16,
+    "R16_FLOAT": 16,
+    "D16_UNORM": 16,
+    "R16_UNORM": 16,
+    "R16_UINT": 16,
+    "R16_SNORM": 16,
+    "R16_SINT": 16,
+    "B5G6R5_UNORM": 16,
+    "B5G5R5A1_UNORM": 16,
+    "A8P8": 16,
+    "B4G4R4A4_UNORM": 16,
+    "NV12": 12,
+    "420_OPAQUE": 12,
+    "NV11": 12,
+    "BC2_TYPELESS": 8,
+    "BC2_UNORM": 8,
+    "BC2_UNORM_SRGB": 8,
+    "BC3_TYPELESS": 8,
+    "BC3_UNORM": 8,
+    "BC3_UNORM_SRGB": 8,
+    "BC5_TYPELESS": 8,
+    "BC5_UNORM": 8,
+    "BC5_SNORM": 8,
+    "BC6H_TYPELESS": 8,
+    "BC6H_UF16": 8,
+    "BC6H_SF16": 8,
+    "BC7_TYPELESS": 8,
+    "BC7_UNORM": 8,
+    "BC7_UNORM_SRGB": 8,
+    "R8_TYPELESS": 8,
+    "R8_UNORM": 8,
+    "R8_UINT": 8,
+    "R8_SNORM": 8,
+    "R8_SINT": 8,
+    "A8_UNORM": 8,
+    "AI44": 8,
+    "IA44": 8,
+    "P8": 8,
+    "R1_UNORM": 1,
+    "BC1_TYPELESS": 4,
+    "BC1_UNORM": 4,
+    "BC1_UNORM_SRGB": 4,
+    "BC4_TYPELESS": 4,
+    "BC4_UNORM": 4,
+    "BC4_SNORM": 4
+}
+
 class MeshFlag():
 	Skin            = 0x03
 	BlendShape      = 0x04
 	NormalsRecalc   = 0x08
 
 	VFX             = 0x80
+
 
 def sort_human(List):
 	convert = lambda text: float(text) if text.isdigit() else text
@@ -490,6 +665,7 @@ def GetRootGameDir(path=""):
 			break
 		else:
 			path = os.path.normpath(os.path.join(path, ".."))
+	
 	return path	+ "\\"
 	
 def LoadExtractedDir(gameName=None):
@@ -575,7 +751,11 @@ def collapseBones(mdl, threshold=0.01):
 	for i, bone in enumerate(mdl.bones):
 		boneMapId = i
 		name = allBoneNames[i].split(".", 1)[0]
-		sameBoneIdx = allBoneNames.index(name)
+		try:
+			sameBoneIdx = allBoneNames.index(name)
+		except ValueError:
+			print("ERROR:", name, " not in bones list!")
+			continue
 		#if sameBoneIdx != i and (getGlobalMatrix(mdl.bones[sameBoneIdx], mdl.bones)[3] - getGlobalMatrix(bone, mdl.bones)[3]).length() < threshold * fDefaultMeshScale:
 		if sameBoneIdx != i: # and (mdl.bones[sameBoneIdx].getMatrix()[3] - bone.getMatrix()[3]).length() < threshold * fDefaultMeshScale:
 			boneMapId = sameBoneIdx
@@ -716,40 +896,12 @@ def hash_wide(key, getUnsigned=False):
 	
 def forceFindTexture(FileName, startExtension=""):
 	global sGameName
-	for i in range(8):
-		if i == 0:
-			if startExtension != "":
-				ext = startExtension
-			else:
-				sGameName = "RE2"
-				ext = ".10"
-		elif i == 1:
-			sGameName == "RERT"
-			ext = ".34"
-		elif i == 2:
-			sGameName == "RERT"
-			ext = ".35"
-		elif i == 3:
-			sGameName = "RE3"
-			ext = ".190820018"
-		elif i == 4:
-			sGameName = "RE7"
-			ext = ".8"
-		elif i == 5:
-			sGameName = "RE8"
-			ext = ".30"
-		elif i == 6:
-			sGameName = "DMC5"
-			ext = ".11"
-		elif i == 7:
-			sGameName = "MHRise"
-			ext = ".28"
-		elif i == 8:
-			sGameName = "REVerse"
-			ext = ".30"
-
+	
+	for gameName, table in formats.items():
+		sGameName = gameName
+		ext = table["texExt"]
 		texFile = LoadExtractedDir() + FileName + ext
-		#print ("texFile:", texFile)
+		
 		if rapi.checkFileExists(texFile):
 			return texFile, ext
 			
@@ -757,7 +909,7 @@ def forceFindTexture(FileName, startExtension=""):
 
 def readTextureData(texData, mipWidth, mipHeight, format):
 	
-	fmtName = tex_format_list[format] if format in tex_format_list else ""
+	fmtName = texFormatNames[format] if format in texFormatNames else ""
 	
 	if format == 71 or format == 72: #ATOS
 		texData = rapi.imageDecodeDXT(texData, mipWidth, mipHeight, noesis.FOURCC_DXT1)
@@ -789,7 +941,6 @@ def isImageBlank(imgData, width=None, height=None, threshold=1):
 		imgData = rapi.imageResample(imgData, width, height, 64, 64)
 	for i, b in enumerate(imgData):
 		if (i+1) % 4 != 0 and abs(b - first) > threshold: #skip alpha
-			print("Tex is not blank", i, b, first, abs(b - first))
 			return False
 	return True
 	
@@ -856,13 +1007,19 @@ def texLoadDDS(data, texList, texName=""):
 			mipDataImg.append([bs.readUInt64(), bs.readUInt(), bs.readUInt()]) #[0]offset, [1]pitch, [2]size
 		mipData.append(mipDataImg)
 		#bs.seek((mipCount-1)*16, 1) #skip small mipmaps
-		
-	texFormat = noesis.NOESISTEX_RGBA32
 	
+	formatName = texFormatNames[format]
+	bpp = fmtNameToBpp[formatName]
+	width = int((mipDataImg[0][1] / bpp) * 2)
+	print(formatName, bpp)
+	
+	texFormat = noesis.NOESISTEX_RGBA32
 	tex = False
+	
 	for i in range(numImages):
 		mipWidth = width
 		mipHeight = height
+		
 		for j in range(mipCount):
 			try:
 				bs.seek(mipData[i][j][0])
@@ -911,7 +1068,9 @@ def findSourceTexFile(version_no, outputName=None):
 	newTexName = outputName or rapi.getOutputName().lower()
 	while newTexName.find("out.") != -1: 
 		newTexName = newTexName.replace("out.",".")
-	newTexName =  newTexName.replace(".dds","").replace(".tex","").replace(".10","").replace(".190820018","").replace(".143221013","").replace(".11","").replace(".8","").replace(".28","").replace(".34","").replace(".35","").replace(".30","").replace(".jpg","").replace(".png","").replace(".tga","").replace(".gif","")
+	newTexName =  newTexName.replace(".dds","").replace(".tex","").replace(".jpg","").replace(".png","").replace(".tga","").replace(".gif","")
+	for gameName, tbl in formats.items():
+		newTexName = newTexName.replace(tbl["texExt"], "")
 	ext = ".tex." + str(version_no)
 	if not rapi.checkFileExists(newTexName + ext):
 		for other_ext, subDict in extToFormat.items():
@@ -944,8 +1103,8 @@ def texWriteRGBA(data, width, height, bs):
 	print ("\n			----RE Engine TEX Export----\n")
 	
 	version_no = int(os.path.splitext(rapi.getOutputName())[1][1:])
-	if noesis.optWasInvoked("-b"): # and version_no >= 28 and version_no < 1000: #batch / no-prompt
-		return texWriteRGBA2(data, width, height, bs, version_no)
+	#if noesis.optWasInvoked("-b"): # and version_no >= 28 and version_no < 1000: #batch / no-prompt
+	#	return texWriteRGBA2(data, width, height, bs, version_no)
 		
 	def getExportName(fileName):		
 		if fileName == None:
@@ -955,7 +1114,7 @@ def texWriteRGBA(data, width, height, bs):
 		nonlocal version_no
 		guessedName, ext = findSourceTexFile(version_no)
 		
-		newTexName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Export over tex", "Choose a tex file to export over", guessedName, None)
+		newTexName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Inject tex", "Choose a tex file to inject", guessedName, None)
 		
 		if newTexName == None:
 			print("Aborting...!")
@@ -963,23 +1122,22 @@ def texWriteRGBA(data, width, height, bs):
 		return newTexName
 		
 	fileName = None
-	newTexName = getExportName(fileName)
-	if newTexName == None:
-		return 0
-		
-	while not (rapi.checkFileExists(newTexName)):
-		print ("File not found")
-		newTexName = getExportName(fileName)	
-		fileName = newTexName
+	if noesis.optWasInvoked("-b"):
+		newTexName, ext = findSourceTexFile(version_no)
+	else:
+		newTexName = getExportName(fileName)
 		if newTexName == None:
-			return 0	
-	
-	bTexAsSource = False		
+			return 0
+		while not (rapi.checkFileExists(newTexName)):
+			print ("File not found")
+			newTexName = getExportName(fileName)	
+			fileName = newTexName
+			if newTexName == None:
+				return 0
+		
+	bTexAsSource = False	
 	newTEX = rapi.loadIntoByteArray(newTexName)
 	oldDDS = rapi.loadIntoByteArray(rapi.getInputName())
-	
-	print(newTexName.lower())
-	print(rapi.getInputName().lower())
 	
 	f = NoeBitStream(newTEX)
 	og = NoeBitStream(oldDDS)
@@ -1232,7 +1390,7 @@ class DialogOptions:
 		self.doForceMergeAnims = False
 		self.doConvertMatsForBlender = doConvertMatsForBlender
 		self.width = 600
-		self.height = 850
+		self.height = 810 - (380 - iListboxSize)
 		self.texDicts = None
 		self.gameName = sGameName
 		self.currentDir = ""
@@ -1243,7 +1401,7 @@ dialogOptions = DialogOptions()
 
 DoubleClickTimer = namedtuple("DoubleClickTimer", "name idx timer")
 
-gamesList = [ "RE7", "RE7RT", "RE2", "RERT", "RE3", "RE4", "RE8", "MHRSunbreak", "DMC5", "SF6" ]
+gamesList = [ "RE7", "RE7RT", "RE2", "RERT", "RE3", "RE4", "RE8", "MHRSunbreak", "DMC5", "SF6", "ReVerse", "ExoPrimal", "AJ_AAT", "DD2", "DRDR" ]
 fullGameNames = [
 	"Resident Evil 7",
 	"Resident Evil 7 RT",
@@ -1255,6 +1413,11 @@ fullGameNames = [
 	"MH Rise Sunbreak",
 	"Devil May Cry 5",
 	"Street Fighter 6",
+	"Resident Evil ReVerse",
+	"ExoPrimal",
+	"Apollo Justice AAT",
+	"Dragon's Dogma 2",
+	"Dead Rising DR",
 ]
 		
 class openOptionsDialogImportWindow:
@@ -1307,8 +1470,8 @@ class openOptionsDialogImportWindow:
 			dialogOptions.motDialog = openOptionsDialogImportWindow(None, None, {"isMotlist": True})
 			self.noeWnd.closeWindow()
 			#dialogOptions.motDialog.createMotlistWindow()
-		
-	def openOptionsButtonLoadEntry(self, noeWnd, controlId, wParam, lParam):
+	
+	def clickLoadButton(self):
 		self.isOpen = False
 		if self.isMotlist:
 			self.loadedMlists = {}
@@ -1328,6 +1491,9 @@ class openOptionsDialogImportWindow:
 							self.loadItems.append(mot.name)
 							self.fullLoadItems.append(fullPath)
 		self.noeWnd.closeWindow()
+		
+	def openOptionsButtonLoadEntry(self, noeWnd, controlId, wParam, lParam):
+		self.clickLoadButton()
 			
 	def openOptionsButtonCancel(self, noeWnd, controlId, wParam, lParam):
 		self.isCancelled = True
@@ -1521,7 +1687,8 @@ class openOptionsDialogImportWindow:
 		self.allFiles = [".."]
 		self.pakFiles = []
 		self.subDirs = []
-		exts = [formatTbl["mlistExt" if self.isMotlist else "modelExt"] for gameName, formatTbl in formats.items()]
+		fmtKey = "mlistExt" if self.isMotlist else "modelExt"
+		exts = [formatTbl[fmtKey] for gameName, formatTbl in formats.items()]
 		for item in os.listdir(dialogOptions.currentDir):
 			if os.path.isdir(os.path.join(dialogOptions.currentDir, item)):
 				self.subDirs.append(item)
@@ -1579,7 +1746,7 @@ class openOptionsDialogImportWindow:
 			self.noeWnd.y = noeWindowRect[1] + windowMargin  
 		return self.noeWnd.createWindow()
 		
-	def createMotlistWindow(self, width=dialogOptions.width, height=dialogOptions.height):
+	def createMotlistWindow(self, width=dialogOptions.width, height=800):
 		
 		if self.create(width, height):
 			self.noeWnd.setFont("Futura", 14)
@@ -1592,39 +1759,39 @@ class openOptionsDialogImportWindow:
 			self.pakList = self.noeWnd.getControlByIndex(index)
 			
 			self.noeWnd.createStatic("Motions:", 5, 240, width-20, 20)
-			index = self.noeWnd.createListBox(5, 260, width-20, 240, self.selectMotlistItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
+			index = self.noeWnd.createListBox(5, 260, width-20, 200, self.selectMotlistItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
 			self.motLoadList = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("Motions to load:", 5, 505, width-20, 20)
-			index = self.noeWnd.createListBox(5, 525, width-40, 150, self.selectLoadListItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
+			self.noeWnd.createStatic("Motions to load:", 5, 465, width-20, 20)
+			index = self.noeWnd.createListBox(5, 485, width-40, 150, self.selectLoadListItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
 			self.loadList = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createButton("↑", width-30, 565, 20, 30, self.pressLoadListUpButton)
-			self.noeWnd.createButton("↓", width-30, 605, 20, 30, self.pressLoadListDownButton)
+			self.noeWnd.createButton("↑", width-30, 525, 20, 30, self.pressLoadListUpButton)
+			self.noeWnd.createButton("↓", width-30, 565, 20, 30, self.pressLoadListDownButton)
 			
 			if True:
-				index = self.noeWnd.createCheckBox("Force Center", 10, 685, 100, 30, self.checkFCenterCheckbox)
+				index = self.noeWnd.createCheckBox("Force Center", 10, 640, 100, 30, self.checkFCenterCheckbox)
 				self.FCenterCheckbox = self.noeWnd.getControlByIndex(index)
 				self.FCenterCheckbox.setChecked(dialogOptions.doForceCenter)
 				
-				index = self.noeWnd.createCheckBox("Sync by Frame Count", 10, 715, 160, 30, self.checkSyncCheckbox)
+				index = self.noeWnd.createCheckBox("Sync by Frame Count", 10, 670, 160, 30, self.checkSyncCheckbox)
 				self.syncCheckbox = self.noeWnd.getControlByIndex(index)
 				self.syncCheckbox.setChecked(dialogOptions.doSync)
 				
-				index = self.noeWnd.createCheckBox("Force Merge All", 10, 745, 160, 30, self.checkForceMergeCheckbox)
+				index = self.noeWnd.createCheckBox("Force Merge All", 10, 700, 160, 30, self.checkForceMergeCheckbox)
 				self.forceMergeCheckbox = self.noeWnd.getControlByIndex(index)
 				self.forceMergeCheckbox.setChecked(dialogOptions.doForceMergeAnims)
 
-			self.noeWnd.createStatic("Game:", width-218, height-160, 60, 20)
-			index = self.noeWnd.createComboBox(width-170, height-165, 150, 20, self.selectGameBoxItem, noewin.CBS_DROPDOWNLIST) #CB
+			self.noeWnd.createStatic("Game:", width-218, 645, 60, 20)
+			index = self.noeWnd.createComboBox(width-170, 645, 150, 20, self.selectGameBoxItem, noewin.CBS_DROPDOWNLIST) #CB
 			self.gameBox = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("View:", width-210, height-130, 60, 20)
-			index = self.noeWnd.createComboBox(width-170, height-135, 150, 20, self.selectLocalBoxItem, noewin.CBS_DROPDOWNLIST) #CB
+			self.noeWnd.createStatic("View:", width-210, 675, 60, 20)
+			index = self.noeWnd.createComboBox(width-170, 675, 150, 20, self.selectLocalBoxItem, noewin.CBS_DROPDOWNLIST) #CB
 			self.localBox = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("Scale:", width-215, height-100, 60, 20)
-			index = self.noeWnd.createEditBox(width-170, height-100, 80, 20, str(fDefaultMeshScale), self.inputGlobalScaleEditBox, False) #EB
+			self.noeWnd.createStatic("Scale:", width-215,705, 60, 20)
+			index = self.noeWnd.createEditBox(width-170, 705, 80, 20, str(fDefaultMeshScale), self.inputGlobalScaleEditBox, False) #EB
 			self.globalScaleEditBox = self.noeWnd.getControlByIndex(index)
 			
 			self.noeWnd.createButton("Load" if not self.isMotlist or self.args.get("motlist") else "OK", 5, height-70, width-160, 30, self.openOptionsButtonLoadEntry)
@@ -1638,70 +1805,72 @@ class openOptionsDialogImportWindow:
 			
 			self.noeWnd.doModal()
 	
-	def createPakWindow(self, width=dialogOptions.width, height=dialogOptions.height):
+	def createMeshWindow(self, width=dialogOptions.width, height=dialogOptions.height):
 		
 		if self.create(width, height):
 			self.noeWnd.setFont("Futura", 14)
 			
-			self.noeWnd.createStatic("Mesh files from:", 5, 45, width-20, 20)
-			index = self.noeWnd.createEditBox(5, 65, width-20, 45, dialogOptions.currentDir, self.inputCurrentDirEditBox) #EB
+			self.noeWnd.createStatic("Mesh files from:", 5, 5, width-20, 20)
+			index = self.noeWnd.createEditBox(5, 25, width-20, 45, dialogOptions.currentDir, self.inputCurrentDirEditBox) #EB
 			self.currentDirEditBox = self.noeWnd.getControlByIndex(index)
 			
-			index = self.noeWnd.createListBox(5, 120, width-20, 380, self.selectPakListItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
+			index = self.noeWnd.createListBox(5, 80, width-20, iListboxSize, self.selectPakListItem, noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
 			self.pakList = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("Files to load:", 5, 505, width-20, 20)
-			index = self.noeWnd.createListBox(5, 525, width-40, 150, self.selectLoadListItem,  noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
+			self.noeWnd.createStatic("Files to load:", 5, iListboxSize+85, width-20, 20)
+			index = self.noeWnd.createListBox(5, iListboxSize+105, width-40, 150, self.selectLoadListItem,  noewin.LBS_NOTIFY | noewin.WS_VSCROLL | noewin.WS_BORDER) #LB
 			self.loadList = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createButton("↑", width-30, 565, 20, 30, self.pressLoadListUpButton)
-			self.noeWnd.createButton("↓", width-30, 605, 20, 30, self.pressLoadListDownButton)
-			
+			self.noeWnd.createButton("↑", width-30, iListboxSize+145, 20, 30, self.pressLoadListUpButton)
+			self.noeWnd.createButton("↓", width-30, iListboxSize+185, 20, 30, self.pressLoadListDownButton)
 			
 			if True:
-				index = self.noeWnd.createCheckBox("Load Textures", 10, 685, 130, 30, self.checkLoadTexCheckbox)
+				index = self.noeWnd.createCheckBox("Load Textures", 10, iListboxSize+265, 130, 30, self.checkLoadTexCheckbox)
 				self.loadTexCheckbox = self.noeWnd.getControlByIndex(index)
 				self.loadTexCheckbox.setChecked(dialogOptions.doLoadTex)
 				
 				
-				index = self.noeWnd.createCheckBox("Load All Textures", 150, 685, 160, 30, self.checkLoadAllTexCheckbox)
+				index = self.noeWnd.createCheckBox("Load All Textures", 150, iListboxSize+265, 160, 30, self.checkLoadAllTexCheckbox)
 				self.loadAllTexCheckbox = self.noeWnd.getControlByIndex(index)
 				self.loadAllTexCheckbox.setChecked(dialogOptions.loadAllTextures)
 				
-				index = self.noeWnd.createCheckBox("Convert Textures", 10, 715, 130, 30, self.checkConvTexCheckbox)
+				index = self.noeWnd.createCheckBox("Convert Textures", 10, iListboxSize+295, 130, 30, self.checkConvTexCheckbox)
 				self.convTexCheckbox = self.noeWnd.getControlByIndex(index)
 				self.convTexCheckbox.setChecked(dialogOptions.doConvertTex)
 				
-				index = self.noeWnd.createCheckBox("Collapse Bones", 150, 715, 120, 30, self.checkReparentCheckbox)
+				index = self.noeWnd.createCheckBox("Collapse Bones", 150, iListboxSize+295, 120, 30, self.checkReparentCheckbox)
 				self.reparentCheckbox = self.noeWnd.getControlByIndex(index)
 				self.reparentCheckbox.setChecked(dialogOptions.reparentHelpers)
 				
-				index = self.noeWnd.createCheckBox("Import LODs", 10, 745, 100, 30, self.checkLODsCheckbox)
+				'''index = self.noeWnd.createCheckBox("Import LODs", 10, iListboxSize+365, 100, 30, self.checkLODsCheckbox) #TODO
 				self.LODsCheckbox = self.noeWnd.getControlByIndex(index)
-				self.LODsCheckbox.setChecked(dialogOptions.doLODs)
+				self.LODsCheckbox.setChecked(dialogOptions.doLODs)'''
 				
-				self.noeWnd.createButton("Select Animations", 150, 745, 200, 30, self.openMotlistDialogButton)
+				self.noeWnd.createButton("Select Animations", 150, iListboxSize+325, 200, 30, self.openMotlistDialogButton)
 
-			self.noeWnd.createStatic("Game:", width-248, 690, 60, 20)
-			index = self.noeWnd.createComboBox(width-200, 685, 180, 20, self.selectGameBoxItem, noewin.CBS_DROPDOWNLIST) #CB
+			self.noeWnd.createStatic("Game:", width-248, iListboxSize+270, 60, 20)
+			index = self.noeWnd.createComboBox(width-200, iListboxSize+265, 180, 20, self.selectGameBoxItem, noewin.CBS_DROPDOWNLIST) #CB
 			self.gameBox = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("View:", width-240, 720, 60, 20)
-			index = self.noeWnd.createComboBox(width-200, 715, 180, 20, self.selectLocalBoxItem, noewin.CBS_DROPDOWNLIST) #CB
+			self.noeWnd.createStatic("View:", width-240, iListboxSize+300, 60, 20)
+			index = self.noeWnd.createComboBox(width-200, iListboxSize+295, 180, 20, self.selectLocalBoxItem, noewin.CBS_DROPDOWNLIST) #CB
 			self.localBox = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createStatic("Scale:", width-145, 750, 60, 20)
-			index = self.noeWnd.createEditBox(width-100, 750, 80, 20, str(fDefaultMeshScale), self.inputGlobalScaleEditBox, False) #EB
+			self.noeWnd.createStatic("Scale:", width-145, iListboxSize+330, 60, 20)
+			index = self.noeWnd.createEditBox(width-100, iListboxSize+330, 80, 20, str(fDefaultMeshScale), self.inputGlobalScaleEditBox, False) #EB
 			self.globalScaleEditBox = self.noeWnd.getControlByIndex(index)
 			
-			self.noeWnd.createButton("Load", 5, height-70, width-160, 30, self.openOptionsButtonLoadEntry)
-			#self.noeWnd.createButton("Select Animations", width-240, height-70, 130, 30, self.openMotlistDialogButton)
-			self.noeWnd.createButton("Cancel", width-96, height-70, 80, 30, self.openOptionsButtonCancel)
+			self.noeWnd.createButton("Load", 5, iListboxSize+360, width-160, 30, self.openOptionsButtonLoadEntry)
+			
+			self.noeWnd.createButton("Cancel", width-96, iListboxSize+360, 80, 30, self.openOptionsButtonCancel)
 			
 			self.setLoadList(self.loadItems)
 			self.setPakList()
 			self.setGameBox(self.gameBox)
 			self.setLocalBox(self.localBox)
+			
+			if noesis.optWasInvoked("-b") or bNoImportMenu:
+				self.clickLoadButton()
 			
 			self.noeWnd.doModal()
 	
@@ -1746,7 +1915,7 @@ class openOptionsDialogExportWindow:
 		self.noeWnd.closeWindow()
 		
 	def openBrowseMenu(self, noeWnd, controlId, wParam, lParam):
-		filepath = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Export over " + self.exportType.upper(), "Choose a " + self.exportType.upper() + " file to export over", self.filepath, None)
+		filepath = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Inject " + self.exportType.upper(), "Choose a " + self.exportType.upper() + " file to inject", self.filepath, None)
 		if filepath:
 			self.filepath = filepath
 			#self.meshFile.setText(self.filepath)
@@ -1860,8 +2029,8 @@ class openOptionsDialogExportWindow:
 		if self.create(width, height):
 			index = self.noeWnd.createComboBox(5, 5, 180, 20, self.selectTexListItem, noewin.CBS_DROPDOWNLIST)
 			self.texType = self.noeWnd.getControlByIndex(index)
-			for fmt in tex_format_list:
-				fmtName = tex_format_list[fmt]
+			for fmt in texFormatNames:
+				fmtName = texFormatNames[fmt]
 				self.texType.addString(fmtName)
 				self.indices.append(fmt)
 				if fmt == self.texformat:
@@ -1896,7 +2065,6 @@ def UVSLoadModel(data, mdlList):
 	bs.seek(texturePtr)
 	texFile = ""
 	sGameName = "RE2"
-	ext = ".10"
 	aspectRatios = []
 	for i in range(textureNum):
 		aspectRatios.append((1,1))
@@ -1907,7 +2075,7 @@ def UVSLoadModel(data, mdlList):
 		textures.append([mStateHolder, mDataPtr, mTextureHandleTbl, Name])
 		
 		if texFile != 0:
-			texFile, ext = forceFindTexture(Name, ext)
+			texFile, ext = forceFindTexture(Name)
 			if texFile != 0:
 				textureData = rapi.loadIntoByteArray(texFile)
 				matName = rapi.getExtensionlessName(rapi.getExtensionlessName(rapi.getLocalFileName(texFile)))
@@ -1991,12 +2159,16 @@ def SCNLoadModel(data, mdlList):
 	
 	global sGameName
 	fName = rapi.getInputName().upper()
-	guessedName = "RE8" if "RE8" in fName else "RE7" if "RE7" in fName else "RE2" if "RE2" in fName else "RE3" if "RE3" in fName else "RE7" if "RE7" in fName else "SF6" if "SF6" in fName else "MHRise" if "MHRISE" in fName else "RE4" if "RE4" in fName else "DMC5"
+	guessedName = "RE8" if "RE8" in fName else "RE7" if "RE7" in fName else "RE2" if "RE2" in fName else "RE3" if "RE3" in fName else "RE7" if "RE7" in fName \
+	else "SF6" if "SF6" in fName else "MHRise" if "MHRISE" in fName else "RE4" if "RE4" in fName else "ExoPrimal" if ("EXO" in fName or "EXP" in fName) else "DMC5" if "DMC5" in fName \
+	else "DD2" if "DD2" in fName else "DRDR" if "DRDR" in fName else "AJ_AAT"
 	guessedName = guessedName + "RT" if (guessedName + "RT") in fName else guessedName
-	inputName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "SCN Import", "Input the game name", guessedName, None)
+	
+	msg = ''.join([name + ", " for name, formatList in formats.items()])
+	inputName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "SCN Import", "Input the game name:  " + msg, guessedName, None)
 	if not inputName: 
 		return 0
-	inputName = inputName.upper()
+	#inputName = inputName.upper()
 	isRTRemake = (inputName != "RE7RT" and "RT" in inputName)
 	inputName = inputName.replace("RT", "") if isRTRemake else inputName
 	if inputName not in formats:
@@ -2007,51 +2179,46 @@ def SCNLoadModel(data, mdlList):
 	sGameName = "RERT" if isRTRemake else sGameName
 	
 	def getAlignedOffset(tell, alignment):
-		if alignment == 2: return tell + (tell % 2)
-		elif alignment == 4: return (tell+3) & 0xFFFFFFFFFFFFFFFC
-		elif alignment == 8: return (tell+7) & 0xFFFFFFFFFFFFFFF8
-		elif alignment == 16: return (tell+15) & 0xFFFFFFFFFFFFFFF0
-		else: return tell
-	
+		mask = alignment - 1
+		return (tell + mask) & ~mask
+
 	def readByteAndReturn(bs):
-		output = bs.readByte()
-		bs.seek(-1,1)
-		return output
-	
+		out = bs.readByte()
+		bs.seek(-1, 1)
+		return out
+
 	def detectedFloat(bs):
 		if bs.tell() + 4 > bs.getSize():
 			return False
 		flt = abs(bs.readFloat())
-		return (flt == 0 or (flt >= 0.000000001 and flt <= 100000000.0))
-	
+		return flt == 0 or 0.000000001 <= flt <= 100000000.0
+
 	def detectedBools(bs, atAddress):
 		returnPos = bs.tell()
-		nonBoolTotal = 0
-		bs.seek(atAddress) #seek_set
-		for i in range(4):
-			if abs(bs.readByte()) > 1:
-				nonBoolTotal += 1
+		bs.seek(atAddress)
+		nonBoolTotal = sum(abs(bs.readByte()) > 1 for i in range(4))
 		bs.seek(returnPos)
-		return (nonBoolTotal == 0)
-	
+		#print(returnPos, nonBoolTotal)
+		return nonBoolTotal == 0
+
 	def detectedXform(bs):
 		if bs.tell() + 32 >= bs.getSize():
 			return False
 		returnPos = bs.tell()
-		detected = True
 		bs.seek(getAlignedOffset(returnPos, 16))
-		for i in range(12):
-			if not detectedFloat(bs) and (i < 4 or i > 7): #Skip rotation, as valid quaternions can have values like 1.02e^-40
-				detected = False
-				break
+		detected = all(detectedFloat(bs) for i in range(12) if i < 3 or i > 7)
 		bs.seek(returnPos)
 		return detected
- 
+	
+	def checkByteIsUnicodeAlt(bs):
+		altByte = bs.readUByte()
+		return altByte == 0 or 30 <= altByte <= 150 #try to detect Japanese
+	
 	def detectedString(bs, offset):
 		returnPos = bs.tell()
 		result = False
 		bs.seek(offset)
-		if bs.readByte() != 0 and bs.readByte() == 0 and bs.readByte() != 0 and bs.readByte() == 0  and bs.readByte() != 0 and bs.readByte() == 0:
+		if bs.readByte() != 0 and checkByteIsUnicodeAlt(bs) and bs.readByte() != 0 and checkByteIsUnicodeAlt(bs) and bs.readByte() != 0 and checkByteIsUnicodeAlt(bs):
 			result = True
 		bs.seek(returnPos)
 		return result
@@ -2064,7 +2231,7 @@ def SCNLoadModel(data, mdlList):
 				bs.seek(-2, 1)
 				slash_detected = slash_detected or ((readByteAndReturn(bs)) == 47)
 			bs.seek(-2, 1)
-		if not is_second_time and detectedString(bs, bs.tell()):
+		if not is_second_time and (detectedString(bs, bs.tell())):
 			bs.seek(-10, 1)
 			redetectStringBehind(bs, True)
 			if not detectedString(bs, bs.tell()+4):
@@ -2082,6 +2249,7 @@ def SCNLoadModel(data, mdlList):
 		DrawSelf = bs.readByte()
 		UpdateSelf = bs.readByte()
 		bs.seek(timescale_offset)
+		#bs.seek(getAlignedOffset(bs.tell(), 4))
 		TimeScale = bs.readFloat()
 		return viaGameObject(Name, Tag, DrawSelf, UpdateSelf, TimeScale)
 	
@@ -2110,10 +2278,15 @@ def SCNLoadModel(data, mdlList):
 			if bs.tell() >= limitPoint: break
 			while not detectedString(bs, bs.tell()):
 				if bs.tell() >= limitPoint: break
+				if bs.tell() + 4 > bs.getSize():
+					return output
 				bs.seek(4,1)
-			bs.seek(getAlignedOffset(bs.tell()-2, 4))
-			meshPath = ReadUnicodeString(bs)
-			bs.seek(getAlignedOffset(bs.tell()+1, 4))
+			try:
+				bs.seek(getAlignedOffset(bs.tell()-2, 4))
+				meshPath = ReadUnicodeString(bs)
+				bs.seek(getAlignedOffset(bs.tell()+1, 4))
+			except:
+				break
 		if meshPath.find(".mesh") != -1 and meshPath.lower().find("occ") == -1:
 			meshPath = meshPath.replace("/", "\\")
 			meshPath = current_pak_location + meshPath + formats[sGameName]["modelExt"]
@@ -2124,6 +2297,7 @@ def SCNLoadModel(data, mdlList):
 				mdfPath = mdfPath.replace("/", "\\")
 				mdfPath = current_pak_location + mdfPath + formats[sGameName]["mdfExt"].replace(".mdf2", "")
 			output = [meshPath, mdfPath]
+			
 		return output
 
 	def findGameObjects(bs):
@@ -2141,17 +2315,22 @@ def SCNLoadModel(data, mdlList):
 			while bs.tell() + 4 < fileSize:
 				while tester != 3212836864 and bs.tell() + 4 < fileSize: # 00 00 80 BF , timescale -1.0
 					tester = bs.readUInt()
-				if pos < fileSize - 16 and detectedBools(bs, bs.tell()-8) and detectedXform(bs):
-					#print ("\nFound possible GameObject at ", bs.tell())
+				boolSearchPos = bs.tell()-8
+				foundBools = detectedBools(bs, bs.tell()-8)
+				foundXform = detectedXform(bs)
+				if pos < fileSize - 16 and foundBools and foundXform:
+					print ("\nFound possible GameObject at ", bs.tell())
 					GameObjectAddresses.append(bs.tell())
+				else:
+					print ("\nFound possible GameObject at ", bs.tell(), "but xform:", foundXform, "and bools:", foundBools, boolSearchPos)
 				tester = bs.readUInt()
 			
 			if len(GameObjectAddresses) > 0:
 				GameObjectAddresses.append(fileSize)
-				for i in range(len(GameObjectAddresses)-2):
+				for i in range(len(GameObjectAddresses)-1):
 					bs.seek(GameObjectAddresses[i])
 					transform = readViaTransform(bs)
-					bs.seek(GameObjectAddresses[i]-36)
+					bs.seek(GameObjectAddresses[i]-28)
 					pos2 = bs.tell()
 					while not detectedString(bs, bs.tell()) and pos2 - bs.tell() < 12:
 						bs.seek(-2,1)
@@ -2159,12 +2338,30 @@ def SCNLoadModel(data, mdlList):
 						bs.seek(pos2)
 					if detectedString(bs, bs.tell()):
 						redetectStringBehind(bs, False)
+					st = bs.tell()
 					gameobject = readViaGameObject(bs, GameObjectAddresses[i]-4)
-					if abs(gameobject.DrawSelf) <= 1 and abs(gameobject.UpdateSelf) <= 1 and gameobject.TimeScale == -1:
+					if gameobject.Name and abs(gameobject.DrawSelf) <= 1 and abs(gameobject.UpdateSelf) <= 1 and gameobject.TimeScale == -1:
 						meshMDF = findMesh(bs, GameObjectAddresses[i+1])
 						GameObjects.append([gameobject, transform, meshMDF[0], meshMDF[1]])
-						#print(bs.tell(), GameObjects[len(GameObjects)-1])
+					elif not (abs(gameobject.DrawSelf) <= 1 and abs(gameobject.UpdateSelf) <= 1):
+						#print("1. Failed to add GameObject at", st, pos2, abs(gameobject.DrawSelf),  abs(gameobject.UpdateSelf), gameobject.TimeScale, gameobject.Name)
+						bs.seek(st - 8)
+						pos2 = bs.tell()
+						while not detectedString(bs, bs.tell()) and pos2 - bs.tell() < 12:
+							bs.seek(-2,1)
+						if pos2 - bs.tell() == 12:
+							bs.seek(pos2)
+						if detectedString(bs, bs.tell()):
+							redetectStringBehind(bs, False)
+						st = bs.tell()
+						gameobject = readViaGameObject(bs, GameObjectAddresses[i]-4)
+						if gameobject.Name and abs(gameobject.DrawSelf) <= 1 and abs(gameobject.UpdateSelf) <= 1 and gameobject.TimeScale == -1:
+							meshMDF = findMesh(bs, GameObjectAddresses[i+1])
+							GameObjects.append([gameobject, transform, meshMDF[0], meshMDF[1]])
+						else:
+							print("2. Failed to add GameObject at", st, pos2, abs(gameobject.DrawSelf),  abs(gameobject.UpdateSelf), gameobject.TimeScale, gameobject.Name)
 						
+		print("Num detected:", len(GameObjectAddresses), len(GameObjects))
 		return GameObjects
 	
 	ss = NoeBitStream(data)
@@ -2184,15 +2381,20 @@ def SCNLoadModel(data, mdlList):
 		ids.append(ss.readUInt())
 		parentIds.append(ss.readUInt())
 		ss.seek(24,1)
-	#st4_708_0 garage
+		
 	counter = 0
 	usedNames = {}
-	print(gameObjs)
+	print("Expected GameObject count:", len(parentIds), ", Num found GameObjects:", len(gameObjs))
+	#for i, gameObj in enumerate(gameObjs):
+	#	print(i, gameObj)
+	#return 1
+	
 	for i, tup in enumerate(gameObjs):
 		try:
 			gameObjsDict[ids[i]] = tup
 		except: 
 			pass
+			
 		if tup[2] != None and rapi.checkFileExists(tup[2]) and tup[0].Name.find("AIMap") == -1:
 			mesh = meshFile(rapi.loadIntoByteArray(tup[2]), tup[2])
 			mesh.meshFile = tup[2]
@@ -2206,6 +2408,7 @@ def SCNLoadModel(data, mdlList):
 				mesh.pos *= parentRotation.transpose()
 				mesh.pos += parentPosition
 				mesh.rot = parentRotation * mesh.rot
+			
 			mesh.fullTexList = totalTexList
 			mesh.fullMatList = totalMatList
 			mesh.fullBoneList = totalBoneList
@@ -2218,6 +2421,7 @@ def SCNLoadModel(data, mdlList):
 			usedNames[mesh.name] = True
 			mesh.loadMeshFile()
 			counter += 1
+	#return 1
 	try:
 		mdl = rapi.rpgConstructModelAndSort()
 		mdl.setModelMaterials(NoeModelMaterials(totalTexList, totalMatList))
@@ -2231,9 +2435,6 @@ def SCNLoadModel(data, mdlList):
 	print("\nLoaded", counter, "MESH files comprised of", len(mdl.meshes), "submeshes")
 	
 	return 1
-	
-	
-	
 	
 BoneHeader = namedtuple("BoneHeader", "name pos rot index parentIndex hash mat")
 
@@ -2266,7 +2467,7 @@ def wRot(quat3):
 
 class motFile:
 	
-	def __init__(self, dataBytesArray, motlist=[], start=0):
+	def __init__(self, dataBytesArray, motlist=[], start=0, motionID=""):
 		self.bs = NoeBitStream(dataBytesArray)
 		bs = self.bs
 		self.start = start
@@ -2295,7 +2496,7 @@ class motFile:
 		nameOffs = bs.readUInt64()
 		self.name = readUnicodeStringAt(bs, nameOffs)
 		self.frameCount = bs.readFloat()
-		self.name += " (" + str(int(self.frameCount)) + " frames)"
+		self.name += " (" + str(int(self.frameCount)) + " frames)" + motionID
 		self.blending = bs.readFloat()
 		self.uknFloat0 = bs.readFloat()
 		self.uknFloat0 = bs.readFloat()
@@ -2462,11 +2663,14 @@ class motFile:
 			
 		self.bones = []
 		if not dialogOptions.dialog or not dialogOptions.dialog.args.get("mesh"):
+			
+			meshBoneNames = [bone.name.lower() for bone in self.motlist.meshBones]
 			motlistBoneNames = [bone.name.lower() for bone in self.motlist.bones]
+			
 			for i, boneHeader in enumerate(self.boneHeaders):
-				bone = NoeBone(len(self.bones), boneHeader.name, boneHeader.mat, self.boneHeaders[boneHeader.parentIndex].name if boneHeader.parentIndex != -1 else None, boneHeader.parentIndex)
-				self.bones.append(bone)
-				
+				if not meshBoneNames or boneHeader.name.lower() in meshBoneNames: #always use additive animations when loading onto meshes
+					bone = NoeBone(len(self.bones), boneHeader.name, boneHeader.mat, self.boneHeaders[boneHeader.parentIndex].name if boneHeader.parentIndex != -1 else None, boneHeader.parentIndex)
+					self.bones.append(bone)
 			
 			selfBoneNames = [bone.name.lower() for bone in self.bones]
 			addedBones = []
@@ -2529,6 +2733,7 @@ class motFile:
 		self.boneClips = []
 		for i in range(self.boneClipCount):
 			boneClipHdr = self.boneClipHeaders[i]
+			#if self.boneHeaders[boneClipHdr.boneIndex].name in 
 			#if (i == 0 and self.boneHeaders[boneClipHdr.boneIndex].name != self.motlist.bones[0].name):
 			#	print(self.name, "Ignoring all keyframes for ", self.boneHeaders[boneClipHdr.boneIndex].name)
 			#	continue
@@ -2610,6 +2815,7 @@ class motFile:
 class motlistFile:
 	
 	def __init__(self, data, path=""):
+		global sGameName
 		self.bs = NoeBitStream(data)
 		bs = self.bs
 		self.path = path
@@ -2629,17 +2835,23 @@ class motlistFile:
 		bs.seek(8, 1)
 		numOffsets = bs.readUInt()
 		bs.seek(pointersOffset)
-		self.motionIDs = []
+		self.motionIDs = {}
 		self.pointers = []
+		sGameName = findGameName("."+str(self.version), "mlistExt")
+			
 		for i in range(numOffsets):
+			if "motionIDsData" in formats[sGameName]:
+				bs.seek(motionIDsOffset + i*formats[sGameName]["motionIDsData"][0] + formats[sGameName]["motionIDsData"][1])
+				self.motionIDs[i] = bs.readUShort()
+			
 			bs.seek(pointersOffset + i*8)
 			motAddress = bs.readUInt64()
 			if motAddress and motAddress not in self.pointers and readUIntAt(bs, motAddress+4) == 544501613: # 'mot'
 				self.pointers.append(motAddress)
 				bs.seek(motAddress)
-				mot = motFile(bs.readBytes(bs.getSize()-bs.tell()), self, motAddress)
+				mot = motFile(bs.readBytes(bs.getSize()-bs.tell()), self, motAddress, " ID: " + str(self.motionIDs[i] if i in self.motionIDs else ""))
 				self.mots.append(mot)
-				
+		
 	def findBoneHeaders(self):
 		self.searchedForBoneHeaders = True
 		for mot in self.mots:
@@ -2730,7 +2942,7 @@ def motlistLoadModel(data, mdlList):
 	mlDialog = openOptionsDialogImportWindow(None, None, {"motlist":motlist, "isMotlist":True})
 	mlDialog.createMotlistWindow()
 	
-	mdl= NoeModel()
+	mdl = NoeModel()
 	
 	if not mlDialog.isCancelled:
 		mdl.setBones(mlDialog.pak.bones)
@@ -2765,8 +2977,7 @@ def motlistLoadModel(data, mdlList):
 	return 1
 	
 
-isSF6 = False
-isExoPrimal = False
+isMeshVer3 = False
 BBskipBytes = numNodesLocation = LOD1OffsetLocation = normalsRecalcOffsLocation = bsHdrOffLocation = bsIndicesOffLocation = \
 vBuffHdrOffsLocation = bonesOffsLocation = nodesIndicesOffsLocation = namesOffsLocation = floatsHdrOffsLocation = 0
 
@@ -2776,17 +2987,27 @@ def setOffsets(ver):
 	BBskipBytes = 				8 	if ver == 1 else 0
 	numNodesLocation = 			18 	if ver < 3 else 20
 	LOD1OffsetLocation = 		24 	if ver < 3 else 32
-	normalsRecalcOffsLocation = 56 	if ver < 3 else 64
 	bsHdrOffLocation = 			64 	if ver < 3 else 56
-	bsIndicesOffLocation = 		112 if ver < 3 else 128
+	normalsRecalcOffsLocation = 56 	if ver < 3 else 64
 	vBuffHdrOffsLocation = 		80 	if ver < 3 else 72
+	floatsHdrOffsLocation = 	72 	if ver < 3 else 96
 	bonesOffsLocation = 		48 	if ver < 3 else 104
 	nodesIndicesOffsLocation = 	96 	if ver < 3 else 112
+	bsIndicesOffLocation = 		112 if ver < 3 else 128
 	namesOffsLocation = 		120 if ver < 3 else 144
-	floatsHdrOffsLocation = 	72 	if ver < 3 else 96
-	if isExoPrimal:
-		nodesIndicesOffsLocation = 104
-		namesOffsLocation = 136 
+
+	if sGameName == "AJ_AAT" or sGameName == "DD2" or sGameName == "DRDR":
+		namesOffsLocation = 136 # on unrigged meshes its still 144
+	#if isExoPrimal:
+	#	nodesIndicesOffsLocation = 104
+	#	namesOffsLocation = 136 
+	
+def findGameName(number, formatsKey):
+	for gameName, dictionary in formats.items():
+		if dictionary[formatsKey] == number:
+			return gameName
+	return ""
+
 
 class blendShapePosition():
 	def __init__(self, b):
@@ -2849,19 +3070,19 @@ class meshFile(object):
 		setOffsets(self.ver)
 		
 	def setGameName(self):
-		global sGameName, bSkinningEnabled, isSF6, isExoPrimal
+		global sGameName, bSkinningEnabled, isMeshVer3
 		sGameName = "RE2"
 		meshVersion = readUIntAt(self.inFile, 4)
-		isSF6 = isExoPrimal = False
+		isMeshVer3 = False
 		if meshVersion == 220822879:
-			isSF6 = 2
+			isMeshVer3 = True
 			sGameName = "RE4"
-		elif meshVersion == 220705151:
-			isSF6 = True
-			sGameName = "SF6"
-		elif meshVersion == 22011900:
-			isExoPrimal = True
+		elif (meshVersion == 220705151 and self.path.find(".220907984") != -1):
+			isMeshVer3 = True
 			sGameName = "ExoPrimal"
+		elif ((meshVersion == 230403828 or meshVersion == 220705151) and (self.path.find(".230110883") != -1) or self.path.find(".220721329") != -1):
+			isMeshVer3 = True
+			sGameName = "SF6"
 		elif meshVersion == 21041600: # or self.path.find(".2109108288") != -1: #RE2RT + RE3RT, and RE7RT
 			sGameName = "RE7RT" if self.path.find(".220128762") != -1 else "RERT"
 		elif self.path.find(".1808282334") != -1:
@@ -2869,17 +3090,26 @@ class meshFile(object):
 		elif self.path.find(".1902042334") != -1:  #386270720
 			sGameName = "RE3"
 		elif self.path.find(".2102020001") != -1:
-			sGameName = "REVerse"
+			sGameName = "ReVerse"
 		elif meshVersion == 2020091500 or self.path.find(".2101050001") != -1:
 			sGameName = "RE8"
 		elif (meshVersion == 2007158797 or self.path.find(".2008058288") != -1): #Vanilla MHRise
 			sGameName = "MHRise"
 		elif (meshVersion == 21061800 or self.path.find(".2109148288") != -1):  #MHRise Sunbreak version
 			sGameName = "MHRSunbreak"
+		elif (meshVersion == 230406984 or self.path.find(".230612127") != -1): #Apollo Justice
+			isMeshVer3 = True
+			sGameName = "AJ_AAT"
+		elif (meshVersion == 230517984 or self.path.find(".231011879") != -1): #DD2
+			isMeshVer3 = True
+			sGameName = "DD2"
+		elif (meshVersion == 240423829 or self.path.find(".240424828") != -1): #DD2
+			isMeshVer3 = True
+			sGameName = "DRDR"
 		
 	'''MDF IMPORT ========================================================================================================================================================================'''
 	def createMaterials(self, matCount):
-		global bColorize, bPrintMDF, sGameName, sExportExtension
+		global bColorize, bPrintMDF, sGameName, sExportExtension, extractedNativesPath
 		
 		doColorize = bColorize
 		doPrintMDF = bPrintMDF
@@ -2891,21 +3121,12 @@ class meshFile(object):
 		mmtrExt = formats[sGameName]["mmtrExt"]
 		nDir = formats[sGameName]["nDir"]
 		mdfExt = formats[sGameName]["mdfExt"]
-		extractedNativesPath = LoadExtractedDir(sGameName)
-		
-		#Try to find & save extracted game dir for later if extracted game dir is unknown
-		if extractedNativesPath == "":
-			dirName = GetRootGameDir(self.path)
-			if (dirName.endswith("chunk_000\\natives\\" + nDir + "\\")):
-				print ("Saving extracted natives path...")
-				if SaveExtractedDir(dirName, sGameName):
-					extractedNativesPath = dirName
 					
 		if extractedNativesPath != "":
 			print ("Using this extracted natives path:", extractedNativesPath + "\n")
 			
 		#Try to guess MDF filename
-		inputName = self.path #rapi.getInputName()
+		inputName = self.path.lower() #rapi.getInputName()
 		isSCN = (rapi.getInputName().lower().find(".scn") != -1)
 		if inputName.find(".noesis") != -1:
 			inputName = rapi.getLastCheckedName()
@@ -2920,7 +3141,7 @@ class meshFile(object):
 			pathPrefix = pathPrefix.replace("out.",".")
 		pathPrefix = pathPrefix.replace(".mesh", "").replace(modelExt,"").replace(".NEW", "")
 		
-		if sGameName == "REVerse" and os.path.isdir(os.path.dirname(inputName) + "\\Material"):
+		if sGameName == "ReVerse" and os.path.isdir(os.path.dirname(inputName) + "\\Material"):
 			pathPrefix = (os.path.dirname(inputName) + "\\Material\\" + rapi.getLocalFileName(inputName).replace("SK_", "M_")).replace(".NEW", "")
 			while pathPrefix.find("out.") != -1: 
 				pathPrefix = pathPrefix.replace("out.",".")
@@ -2954,7 +3175,7 @@ class meshFile(object):
 		if not (rapi.checkFileExists(materialFileName)):
 			materialFileName = (pathPrefix + "_00" + mdfExt)
 		if not (rapi.checkFileExists(materialFileName)):
-			if self.mdfVer >= 2: #sGameName == "RERT" or sGameName == "RE3" or sGameName == "REVerse" or sGameName == "RE8" or sGameName == "MHRise":
+			if self.mdfVer >= 2: #sGameName == "RERT" or sGameName == "RE3" or sGameName == "ReVerse" or sGameName == "RE8" or sGameName == "MHRise":
 				pathPrefix = extractedNativesPath + re.sub(r'.*stm\\', '', inputName)
 			else:
 				pathPrefix = extractedNativesPath + re.sub(r'.*x64\\', '', inputName) 
@@ -3031,9 +3252,9 @@ class meshFile(object):
 		#Parse Materials
 		for i in range(matCountMDF):
 			
-			if self.mdfVer > 3: #isSF6 or isExoPrimal:
+			if self.mdfVer > 3:
 				bs.seek(0x10 + (i * 100))
-			elif self.mdfVer > 2:#sGameName == "RERT" or sGameName == "REVerse" or sGameName == "RE8" or sGameName == "MHRise":
+			elif self.mdfVer > 2:
 				bs.seek(0x10 + (i * 80))
 			else:
 				bs.seek(0x10 + (i * 64))
@@ -3064,14 +3285,15 @@ class meshFile(object):
 			floatStartOffs = bs.readUInt64()
 			mmtr_PathOffs = bs.readUInt64()
 			
-			if self.mdfVer >= 4: #isSF6 or isExoPrimal:
+			if self.mdfVer >= 4:
 				uknSF6offset = bs.readUInt64()
 				
 			bs.seek(materialNamesOffset)
 			materialName = ReadUnicodeString(bs)
 			bs.seek(mmtr_PathOffs)
-			mmtrName = ReadUnicodeString(bs)
-			hasTransparency = not not (((alphaFlag & ( 1 << 1 )) >> 1) or ((alphaFlag & ( 1 << 4 )) >> 4))
+			mmtrName = ReadUnicodeString(bs).lower()
+			#hasTransparency = not not (((alphaFlag & ( 1 << 1 )) >> 1) or ((alphaFlag & ( 1 << 4 )) >> 4))
+			hasTransparency = "_dirt" in mmtrName or "_decal" in mmtrName or "_hair" in mmtrName 
 			
 			if bPrintFileList:
 				self.texNames.append(("natives/" + nDir + "/" + mmtrName + mmtrExt).lower())
@@ -3113,19 +3335,19 @@ class meshFile(object):
 				bs.seek(paramInfo[j][0])
 				paramType = ReadUnicodeString(bs)
 				
-				colours = []
-				if self.mdfVer >= 2: #sGameName == "RERT" or sGameName == "RE3" or sGameName == "REVerse" or sGameName == "RE8" or sGameName == "MHRise" or sGameName == "SF6":
+				colours = None
+				if self.mdfVer >= 2: #sGameName == "RERT" or sGameName == "RE3" or sGameName == "ReVerse" or sGameName == "RE8" or sGameName == "MHRise" or sGameName == "SF6":
 					bs.seek(floatStartOffs + paramInfo[j][2])
 					if paramInfo[j][3] == 4:
-						colours.append(NoeVec4((bs.readFloat(), bs.readFloat(), bs.readFloat(), bs.readFloat())))
+						colours = NoeVec4((bs.readFloat(), bs.readFloat(), bs.readFloat(), bs.readFloat()))
 					elif paramInfo[j][3] == 1:
-						colours.append(bs.readFloat())
+						colours = bs.readFloat()
 				else:
 					bs.seek(floatStartOffs + paramInfo[j][3])
 					if paramInfo[j][2] == 4:
-						colours.append(NoeVec4((bs.readFloat(), bs.readFloat(), bs.readFloat(), bs.readFloat())))
+						colours = NoeVec4((bs.readFloat(), bs.readFloat(), bs.readFloat(), bs.readFloat()))
 					elif paramInfo[j][2] == 1:
-						colours.append(bs.readFloat())
+						colours = bs.readFloat()
 					
 				if doPrintMDF:
 					print(paramType + ":", colours)
@@ -3148,6 +3370,8 @@ class meshFile(object):
 				if paramType == "Fresnel_DiffuseIntensity" and not bFoundFresnelColour:
 					bFoundFresnelColour = True
 					texFresnelColour.append(colours)
+				if paramType == "Occlusion_UseSecondaryUV" and colours != 0:
+					materialFlags2 |= noesis.NMATFLAG2_OCCL_UV1
 			
 			#Append defaults
 			if not bFoundBaseColour:
@@ -3172,10 +3396,10 @@ class meshFile(object):
 			
 			for j in range(texCount): # texture headers
 				
-				if self.mdfVer >= 2: #sGameName == "RERT" or sGameName == "RE3" or sGameName == "REVerse" or sGameName == "RE8" or sGameName == "MHRise" or sGameName == "SF6":
+				if self.mdfVer >= 2:
 					bs.seek(texHdrOffs + (j * 0x20))
 					textureInfo.append([bs.readUInt64(), bs.readUInt64(), bs.readUInt64(), bs.readUInt64()]) #TextureTypeOffset[0], uknBytes[1], TexturePathOffset[2], padding[3]
-					if self.mdfVer >= 4: #isSF6 or isExoPrimal:
+					if self.mdfVer >= 4:
 						bs.seek(8,1)
 				else:
 					bs.seek(texHdrOffs + (j * 0x18))
@@ -3191,7 +3415,8 @@ class meshFile(object):
 				opacityName = ""
 				extraParam = ""
 				
-				
+				if bFoundBaseColour:
+					material.setDiffuseColor(texBaseColour[i])
 				if bFoundSpecColour:
 					material.setSpecularColor(texSpecColour[i])
 				if bFoundAmbiColour:
@@ -3247,21 +3472,21 @@ class meshFile(object):
 							if rapi.checkFileExists(self.rootDir + testPath) or rapi.checkFileExists(extractedNativesPath + testPath):
 								self.texNames.append(newTexPath.replace('streaming/',''))
 				
-				if ("BaseMetal" in textureType or "BaseDielectric" in textureType or "BaseShift" in textureType) and not bFoundBM: #
+				lowerTexName = texName.lower()
+				#if (("BaseMetal" in textureType or "BaseDielectric" in textureType or "BaseAlpha" in textureType or "BaseShift" in textureType)) and not bFoundBM: #
+				if "_alb" in lowerTexName and (not bFoundBM or ("_albd" in lowerTexName)): #goddamn RE8 #"_albm" in lowerTexName or 
 					bFoundBM = True
 					material.setTexture(texName)
-					material.setDiffuseColor(texBaseColour[i])
 					material.setSpecularColor([.25, .25, .25, 1])
 					if "AlphaMap" in textureType:
 						extraParam = "isALBA"
 					if "Metal" in textureType:
 						extraParam = "isALBM"
 					if "Dielectric" in textureType:
-						print("found dielectric")
 						extraParam = "isALBD"
-					self.uvBias[material.name] = [0.5, 0.5] if sGameName == "RE7RT" and "atlas" in texName.lower() else 1.0
-				elif ("NormalRoughness" in textureType or "NR" in textureType) and not bFoundNM:
-				#elif textureType == "NormalRoughnessMap" and not bFoundNM:
+					self.uvBias[material.name] = [0.5, 0.5] if sGameName == "RE7RT" and "atlas" in lowerTexName else 1.0
+				#elif (("Normal" in textureType or "NR" in textureType) or "_nr" in lowerTexName) and not bFoundNM:
+				elif "_nr" in lowerTexName and not bFoundNM:
 					bFoundNM = True
 					material.setNormalTexture(texName)
 					extraParam = "isNRM"
@@ -3276,7 +3501,10 @@ class meshFile(object):
 					material.setOcclTexture(texName.replace(texOutputExt,  "_NoesisAO" + texOutputExt))
 				elif textureType == "AlphaMap":
 					opacityName = texName
-				elif ("_alb" in texName.lower()) and not secondaryDiffuse:
+				#elif "_lymo" in lowerTexName:
+				#	extraParam = "isLYMO"
+				elif re.search("^Base.*Map$", textureType) and not secondaryDiffuse:
+				#elif ("_alb" in lowerTexName) and not secondaryDiffuse:
 					secondaryDiffuse = texName
 				elif not dialogOptions.loadAllTextures:
 					isNotMainTexture = True
@@ -3327,6 +3555,24 @@ class meshFile(object):
 									opacityTexData = rapi.imageDecodeRaw(opacityTexData, noetex.width, noetex.height, "r8g8b8")
 									opacityName = texName.replace(texOutputExt,  "_NoesisAlpha" + texOutputExt)
 									self.texList.append(NoeTexture(opacityName, noetex.width, noetex.height, opacityTexData, noesis.NOESISTEX_RGBA32))
+								if "isLYMO" == extraParam:
+									#r=metal? g= b=roughness? a=ao?
+									materialFlags |= noesis.NMATFLAG_PBR_METAL
+									metalTexName = texName.replace(texOutputExt,  "_NoesisMET" + texOutputExt)
+									metalTexData = rapi.imageEncodeRaw(noetex.pixelData, noetex.width, noetex.height, "r8r8r8")
+									metalTexData = rapi.imageDecodeRaw(metalTexData, noetex.width, noetex.height, "r8g8b8")
+									material.setSpecularTexture(metalTexName)
+									self.texList.append(NoeTexture(metalTexName, noetex.width, noetex.height, metalTexData, noesis.NOESISTEX_RGBA32))
+									if dialogOptions.doConvertMatsForBlender:
+										roughnessTexName = texName.replace(texOutputExt,  "_NoesisRGH" + texOutputExt)
+										roughnessTexData = rapi.imageEncodeRaw(noetex.pixelData, noetex.width, noetex.height, "b8b8b8")
+										roughnessTexData = rapi.imageDecodeRaw(roughnessTexData, noetex.width, noetex.height, "r8g8b8")
+										self.texList.append(NoeTexture(roughnessTexName, noetex.width, noetex.height, roughnessTexData, noesis.NOESISTEX_RGBA32))
+										material.setBumpTexture(roughnessTexName)
+									noetex.pixelData = rapi.imageEncodeRaw(noetex.pixelData, noetex.width, noetex.height, "a8a8a8")
+									noetex.pixelData = rapi.imageDecodeRaw(noetex.pixelData, noetex.width, noetex.height, "r8g8b8")
+									material.setOcclTexture(noetex.name)
+									
 								if "isATOS" in extraParam:
 									imgData = copy.copy(noetex.pixelData)
 									aoTexData = rapi.imageEncodeRaw(noetex.pixelData, noetex.width, noetex.height, "b8b8b8")
@@ -3426,7 +3672,18 @@ class meshFile(object):
 	'''MESH IMPORT ========================================================================================================================================================================'''
 	def loadMeshFile(self): #, mdlList):
 		
-		global sGameName, bSkinningEnabled, isSF6, isExoPrimal
+		global sGameName, bSkinningEnabled, isMeshVer3, namesOffsLocation, extractedNativesPath
+		
+		self.rootDir = GetRootGameDir(self.path)
+		extractedNativesPath = LoadExtractedDir(sGameName)
+		
+		#Try to find & save extracted game dir for later if extracted game dir is unknown
+		if extractedNativesPath == "":
+			if (self.rootDir.lower().endswith("chunk_000\\natives\\" + formats[sGameName]["nDir"] + "\\")):
+				print ("Saving extracted natives path...")
+				if SaveExtractedDir(self.rootDir, sGameName):
+					extractedNativesPath = self.rootDir
+		
 		bs = self.inFile
 		magic = bs.readUInt()
 		meshVersion = bs.readUInt()
@@ -3447,6 +3704,8 @@ class meshFile(object):
 		bs.seek(nodesIndicesOffsLocation)  
 		nodesIndicesOffs = bs.readUInt64()  
 		boneIndicesOffs = bs.readUInt64()  
+		#if sGameName == "AJ_AAT" or sGameName == "DD2":
+		#	namesOffsLocation = 136 if bonesOffs > 0 else 144
 		bs.seek(namesOffsLocation)
 		namesOffs = bs.readUInt64()
 		bs.seek(bsHdrOffLocation)
@@ -3461,7 +3720,7 @@ class meshFile(object):
 			bs.seek(LOD1Offs)
 			countArray = bs.read("16B") #[0] = LODGroupCount, [1] = MaterialCount, [2] = UVChannelCount
 			matCount = countArray[1]
-			self.rootDir = GetRootGameDir(self.path)
+			intFaces = countArray[6]
 			bLoadedMats = False
 			if not (noesis.optWasInvoked("-noprompt")) and not bRenameMeshesToFilenames and not rapi.noesisIsExporting() and not (dialogOptions.dialog != None and dialogOptions.doLoadTex == False):
 				bLoadedMats = self.createMaterials(matCount)
@@ -3473,7 +3732,7 @@ class meshFile(object):
 		vertElemHdrOffs = bs.readUInt64()
 		vertBuffOffs = bs.readUInt64()
 		
-		if self.ver >= 3: #isSF6 or isExoPrimal:
+		if self.ver >= 3:
 			uknVB = bs.readUInt64()
 			vertBuffSize = bs.readUInt()
 			face_buffOffsSF6 = bs.readUInt()
@@ -3525,7 +3784,7 @@ class meshFile(object):
 			
 			bs.seek(LOD1Offs + 48 + 16) #unknown floats and bounding box
 			
-			if self.ver <= 1:  #sGameName != "RERT" and sGameName != "REVerse" and sGameName != "RE8" and sGameName != "MHRise": 
+			if self.ver <= 1:  #sGameName != "RERT" and sGameName != "ReVerse" and sGameName != "RE8" and sGameName != "MHRise": 
 				bs.seek(bs.readUInt64())
 			
 			offsetInfo = []
@@ -3683,10 +3942,13 @@ class meshFile(object):
 			for i in range(matCount):
 				matIndices.append(bs.readUShort())
 			
+			isSCN = (rapi.getInputName().lower().find(".scn") != -1)
 			fullBonesOffs = len(self.fullBoneList)
 			fullRemapOffs = len(self.fullRemapTable)
 			fullBoneNames = [cleanBoneName(bone.name).lower() for bone in self.fullBoneList]
 			boneRemapTable = []
+			
+			#bSkinningEnabled = bDoSkin = bonesOffs = 0
 			
 			#Skeleton
 			if bonesOffs:
@@ -3695,7 +3957,7 @@ class meshFile(object):
 				boneMapCount = bs.readUInt()	
 				bAddNumbers = False
 				if rapi.getInputName().find(".noesis") == -1 and (not dialogOptions.dialog or len(dialogOptions.dialog.loadItems) == 1) and (not dialogOptions.motDialog or not dialogOptions.motDialog.loadItems) :
-					maxBones = 1024 if isSF6 == True else 256
+					maxBones = 1024 if sGameName == "SF6" else 256
 					if bAddBoneNumbers == 1 or noesis.optWasInvoked("-bonenumbers"):
 						bAddNumbers = True
 					elif bAddBoneNumbers == 2 and boneCount > maxBones and rapi.getInputName().lower().find(".scn") == -1:
@@ -3741,7 +4003,7 @@ class meshFile(object):
 									boneName = "b" + "{:03d}".format(j+1) + ":" + boneName
 									break
 						parentIdx = boneParentInfo[i][1]
-						if lowerBoneName in fullBoneNames:
+						if not isSCN and lowerBoneName in fullBoneNames:
 							if i == 0: #relocate this mesh's root bone onto base skeleton version
 							#if lowerBoneName == "cog" or lowerBoneName == "hip" or lowerBoneName == "c_hip":
 								print("Relocating bone", boneName)
@@ -3776,7 +4038,7 @@ class meshFile(object):
 				else:
 					bDoSkin = False
 					
-			isSCN = (rapi.getInputName().lower().find(".scn") != -1)
+			
 			self.fullBoneList.extend(self.boneList)
 			self.fullRemapTable.extend(boneRemapTable)
 			
@@ -3805,7 +4067,10 @@ class meshFile(object):
 					self.groupIDs.append(meshVertexInfo[len(meshVertexInfo)-1][0])
 					submeshData = []
 					for k in range(meshVertexInfo[j][1]):
-						if self.ver >= 2: #sGameName == "RERT" or sGameName == "REVerse" or sGameName == "MHRise" or sGameName == "RE8" or sGameName == "SF6":
+						if sGameName == "DRDR":
+							submeshData.append([bs.readUShort(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt64(), self.groupIDs[len(self.groupIDs)-1], bs.readUInt()])
+							del submeshData[len(submeshData)-1][2] #this is something new, not sure
+						elif self.ver >= 2:
 							submeshData.append([bs.readUShort(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt(), bs.readUInt64(), self.groupIDs[len(self.groupIDs)-1]]) 
 						else:
 							submeshData.append([bs.readUShort(), bs.readUShort(), bs.readUInt(), bs.readUInt(), bs.readUInt(), self.groupIDs[len(self.groupIDs)-1]]) #0 MaterialID, 1 faceCount, 2 indexBufferStartIndex, 3 vertexStartIndex
@@ -3946,7 +4211,7 @@ class meshFile(object):
 							rapi.rpgSetBoneMap(self.fullRemapTable)
 							idxList = []
 							start = vertexStartIndex + vertElemHeaders[weightIndex][2] + (vertElemHeaders[weightIndex][1] * vertsBefore)
-							if isSF6 == True:
+							if sGameName == "SF6":
 								for v in range(numVerts):
 									bs.seek(start + vertElemHeaders[weightIndex][1] * v)
 									for bID in range(3):
@@ -4006,13 +4271,14 @@ class meshFile(object):
 								rapi.rpgCommitMorphFrameSet()
 
 						if numFaces > 0:
-							bs.seek(faceBuffOffs + (facesBefore * 2))
-							indexBuffer = bs.readBytes(numFaces * 2)
+							faceSize = 4 if intFaces == 1 else 2
+							bs.seek(faceBuffOffs + (facesBefore * faceSize))
+							indexBuffer = bs.readBytes(numFaces * faceSize)
 							if bRenderAsPoints:
-								rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT, (meshVertexInfo[j][4] - (vertsBefore)), noesis.RPGEO_POINTS, 0x1)
+								rapi.rpgCommitTriangles(None, noesis.RPGEODATA_USHORT if faceSize == 2 else noesis.RPGEODATA_UINT, (meshVertexInfo[j][4] - (vertsBefore)), noesis.RPGEO_POINTS, 0x1)
 							else:
-								rapi.rpgSetStripEnder(0x10000)
-								rapi.rpgCommitTriangles(indexBuffer, noesis.RPGEODATA_USHORT, numFaces, noesis.RPGEO_TRIANGLE, 0x1)
+								#rapi.rpgSetStripEnder(0x10000)
+								rapi.rpgCommitTriangles(indexBuffer, noesis.RPGEODATA_USHORT if faceSize == 2 else noesis.RPGEODATA_UINT, numFaces, noesis.RPGEO_TRIANGLE, 0x1)
 								rapi.rpgClearBufferBinds()
 					
 					numVertsLOD += meshVertexInfo[j][4]
@@ -4061,7 +4327,10 @@ class meshFile(object):
 				bs.seek(lastFacesPos)
 				indexBuffer = bs.readBytes(indexCount * 2)
 				lastFacesPos = bs.tell()
-				rapi.rpgSetName("OccluderMesh_" + str(i))
+				meshName = "OccluderMesh_" + str(i)
+				if (dialogOptions.dialog and len(dialogOptions.dialog.loadItems) > 1) or isSCN:
+					meshName = rapi.getLocalFileName(self.path).split(".")[0].replace("_", "") + "_" + meshName
+				rapi.rpgSetName(meshName) 
 				rapi.rpgBindPositionBuffer(vertexBuffer, noesis.RPGEODATA_FLOAT, 12)
 				rapi.rpgSetStripEnder(0x10000)
 				try:
@@ -4096,14 +4365,14 @@ def meshLoadModel(data, mdlList):
 	dialogOptions.currentDir = ""
 	dialog = openOptionsDialogImportWindow(None, None, {"mesh":mesh})
 	dialog.path = rapi.getInputName()
-	dialog.createPakWindow()
+	dialog.createMeshWindow()
 	
 	while dialogOptions.motDialog and dialogOptions.motDialog.isOpen:
 		dialogOptions.motDialog.createMotlistWindow()
 		dialogOptions.motDialog.isOpen = False
 		if dialog.isOpen:
 			dialogOptions.currentDir = dialog.currentDir
-			dialog.createPakWindow()
+			dialog.createMeshWindow()
 	
 	if not dialog.isCancelled:
 		for fullMeshPath in dialog.fullLoadItems:
@@ -4168,13 +4437,13 @@ def meshLoadModel(data, mdlList):
 			generateBoneMap(mdl)
 	mdlList.append(mdl)
 	
-	'''boneNames = {}
+	boneNames = {}
 	for i, bone in enumerate(mdl.bones):
 		if bone.name.lower() in boneNames:
 			print("Duplicate Bone Name:", bone.name)
 			collapseBones(mdl, 1)
 			break
-		boneNames[bone.name.lower()] = True'''
+		boneNames[bone.name.lower()] = True
 	
 	return 1
 
@@ -4224,7 +4493,7 @@ def getExportName(fileName, exportType=".mesh"):
 			if openOptionsDialog.doVFX:
 				newMeshName = newMeshName + " -vfx"
 	else:
-		newMeshName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Export over " + exportType.upper(), "Choose a " + exportType.upper() + " file to export over", newMeshName, None)
+		newMeshName = noesis.userPrompt(noesis.NOEUSERVAL_FILEPATH, "Inject " + exportType.upper(), "Choose a " + exportType.upper() + " file to inject", newMeshName, None)
 
 	if newMeshName == None:
 		print("Aborting...")
@@ -4263,7 +4532,7 @@ def getExportName(fileName, exportType=".mesh"):
 	
 def meshWriteModel(mdl, bs):
 
-	global sExportExtension, w1, w2, bWriteBones, bReWrite, bRigToCoreBones, bAddBoneNumbers, sGameName, bNewExportMenu, bDoVFX, isSF6 #doLOD
+	global sExportExtension, w1, w2, bWriteBones, bReWrite, bRigToCoreBones, bAddBoneNumbers, sGameName, bNewExportMenu, bDoVFX, isMeshVer3, namesOffsLocation #doLOD
 	
 	bWriteBones = noesis.optWasInvoked("-bones")
 	bReWrite = noesis.optWasInvoked("-rewrite")
@@ -4283,6 +4552,7 @@ def meshWriteModel(mdl, bs):
 	bDoSkin = False
 	bDoColors = False
 	bAddNumbers = False
+	isDD2Mesh = False
 	f = None
 	newMeshName = ""
 	bDoVFX = noesis.optWasInvoked("-vfx") or (openOptionsDialog and openOptionsDialog.doVFX)
@@ -4348,7 +4618,7 @@ def meshWriteModel(mdl, bs):
 					if bone.name == mesh.name: #fbx is stupid and adds submeshes as bones to boneless meshes
 						submeshBoneCount = submeshBoneCount + 1
 						break
-			if len(mdl.bones) > 0 and submeshBoneCount != len(submeshes):
+			if len(mdl.bones) > 0 and len(mdl.bones) - submeshBoneCount > 0:
 				bDoSkin = True
 					
 	#Prompt for source mesh to export over / export options:
@@ -4443,7 +4713,7 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt64(a)
 		bs.seek(recOffs)
 		
-	print ("		----" + Version + " by alphaZomega----\nOpen fmt_RE_MESH.py in your Noesis plugins folder to change global exporter options.\nExport Options:\n Input these options in the `Advanced Options` field to use them, or use in CLI mode\n -flip  =  OpenGL / flipped handedness (fixes seams and inverted lighting on some models)\n -bones = save new skeleton from Noesis to the MESH file\n -bonenumbers = Export with bone numbers, to save a new bone map\n -meshfile [filename]= Input the location of a [filename] to export over that file\n -noprompt = Do not show any prompts\n -rewrite = save new MainMesh and SubMesh order (also saves bones)\n -vfx = Export as a VFX mesh\n -b = Batch conversion mode\n -adv = Show Advanced Options dialog window\n") #\n -lod = export with additional LODGroups") # 
+	print ("		----" + Version + " by alphaZomega----\nOpen fmt_RE_MESH.py in your Noesis plugins folder to change global exporter options.\nExport Options:\n Input these options in the `Advanced Options` field to use them, or use in CLI mode\n -flip  =  OpenGL / flipped handedness (fixes seams and inverted lighting on some models)\n -bones = save new skeleton from Noesis to the MESH file\n -bonenumbers = Export with bone numbers, to save a new bone map\n -meshfile [filename]= Input the location of a [filename] to inject that file\n -noprompt = Do not show any prompts\n -rewrite = save new MainMesh and SubMesh order (also saves bones)\n -vfx = Export as a VFX mesh\n -b = Batch conversion mode\n -adv = Show Advanced Options dialog window\n") #\n -lod = export with additional LODGroups") # 
 	
 	ext = os.path.splitext(rapi.getOutputName())[1]
 	RERTBytes = 0
@@ -4454,7 +4724,7 @@ def meshWriteModel(mdl, bs):
 	elif ext.find(".1902042334") != -1:
 		sGameName = "RE3"
 	elif ext.find(".2102020001") != -1:
-		sGameName = "REVerse"
+		sGameName = "ReVerse"
 	elif ext.find(".2101050001") != -1:
 		sGameName = "RE8"
 	elif (ext.find(".2109108288") != -1) or (ext.find(".220128762") != -1): #RE2/RE3RT, and RE7RT
@@ -4466,12 +4736,24 @@ def meshWriteModel(mdl, bs):
 		RERTBytes = 8
 	elif ext.find(".2008058288") != -1: #Vanilla MHRise
 		sGameName = "MHRise"
-	elif ext.find(".220721329") != -1:
+	elif ext.find(".230110883") != -1 or ext.find(".220721329") != -1: 
 		sGameName = "SF6"
-		isSF6 = True
+		isMeshVer3 = True
+	elif ext.find(".220907984") != -1:
+		sGameName = "ExoPrimal"
+		isMeshVer3 = True
 	elif ext.find(".221108797") != -1:
 		sGameName = "RE4"
-		isSF6 = 2
+		isMeshVer3 = True
+	elif ext.find(".230612127") != -1:
+		sGameName = "AJ_AAT"
+		isMeshVer3 = True
+	elif ext.find(".231011879") != -1:
+		sGameName = "DD2"
+		isMeshVer3 = True
+	elif ext.find(".240424828") != -1:
+		sGameName = "DRDR"
+		isMeshVer3 = True
 		
 	setOffsets(formats[sGameName]["meshVersion"])
 	
@@ -4521,7 +4803,7 @@ def meshWriteModel(mdl, bs):
 			print("Source Mesh:\n", newMeshName)
 		else:
 			return 0
-	
+			
 	if bDoSkin:
 		print ("  Rigged mesh detected, exporting with skin weights...")
 	else:
@@ -4529,14 +4811,17 @@ def meshWriteModel(mdl, bs):
 		
 	extension = os.path.splitext(rapi.getInputName())[1]
 	vertElemCount = 3 
-
+	
+	if sGameName == "AJ_AAT" or sGameName == "DD2" or sGameName == "DRDR":
+		#namesOffsLocation = 136 if bDoSkin else 144
+		isDD2Mesh = True
 
 	#check if exporting bones and create skin bone map if so:
 	if bDoSkin:
 		vertElemCount += 1
 		bonesList = []
 		newSkinBoneMap = []
-		maxBones = 1024 if isSF6 else 256
+		maxBones = 1024 if sGameName == "SF6" else 256
 		
 		if (bReWrite or bWriteBones) and dialogOptions.doCreateBoneMap:
 			generateBoneMap(mdl)
@@ -4551,7 +4836,7 @@ def meshWriteModel(mdl, bs):
 				for bone in mdl.bones:
 					if bone.name.find(':') != -1:
 						bAddNumbers = True
-						print (bone.name, "has a \':\' (colon) in its name, auto-enabling bone numbers...")
+						print ("  ", bone.name, "has a \':\' (colon) in its name, auto-enabling bone numbers...")
 						break
 		
 		if (bReWrite or bWriteBones) and bForceRootBoneToBone0 and mdl.bones[0] != None and mdl.bones[0].name.lower() != "root" and mdl.bones[len(mdl.bones)-1].name.lower() == "root":
@@ -4623,6 +4908,11 @@ def meshWriteModel(mdl, bs):
 		namesOffs = f.readUInt64() 
 		f.seek(floatsHdrOffsLocation)
 		floatsHdrOffs = f.readUInt64() 
+
+		if isDD2Mesh:
+			f.seek(144)
+			DD2HashesOffset = f.readUInt64()
+		
 		bs.seek(bsHdrOffLocation)
 		bShapesHdrOffs = bs.readUInt64()
 		bs.seek(bsIndicesOffLocation)
@@ -4639,15 +4929,12 @@ def meshWriteModel(mdl, bs):
 		f.seek(vBuffHdrOffs)
 		vertElemHdrOffs = f.readUInt64()
 		vertBuffOffs = f.readUInt64()
-		print(f.tell(), vBuffHdrOffsLocation, vBuffHdrOffs, vertElemHdrOffs, vertBuffOffs)
 		
-		if isSF6:
+		if isMeshVer3:
 			f.seek(8,1)
-			print("vBuffSz at", f.tell())
 			vertBuffSize = f.readUInt()
 			face_buffOffsSF6 = f.readUInt()
 			faceBuffOffs = face_buffOffsSF6 + vertBuffOffs
-			print(faceBuffOffs)
 			vertElemCountA = f.readUShort()
 			vertElemCountB = f.readUShort()
 		else:
@@ -4722,9 +5009,11 @@ def meshWriteModel(mdl, bs):
 			for i in range(boneCount):
 				boneNameAddressList.append(f.readUInt64())
 		
-		if isSF6:
+		if isMeshVer3:
 			f.seek(232)
-		elif sGameName == "RERT" or sGameName == "REVerse" or sGameName == "MHRise" or sGameName == "RE8":
+			if sGameName == "AJ_AAT" or sGameName == "DD2" or sGameName == "DRDR":
+				f.seek(f.readUInt64())
+		elif sGameName == "RERT" or sGameName == "ReVerse" or sGameName == "MHRise" or sGameName == "RE8":
 			f.seek(192)
 		else:
 			f.seek(200)
@@ -4753,6 +5042,7 @@ def meshWriteModel(mdl, bs):
 					matID = f.readUInt() + 1
 					bFind = 0
 					sourceGroupID = meshVertexInfo[len(meshVertexInfo)-1][0] if bReadGroupIds else (mmc+1)
+					
 					for s in range(len(objToExport)):
 						#print (meshesToExport[objToExport[s]].name)
 						sName = meshesToExport[objToExport[s]].name.split('_')
@@ -4779,6 +5069,7 @@ def meshWriteModel(mdl, bs):
 		f.seek(0)
 		
 	if (len(submeshes) == 0):
+		print("No submeshes detected")
 		return 0
 	
 	submeshes = sortForMorph(submeshes)
@@ -4920,30 +5211,23 @@ def meshWriteModel(mdl, bs):
 		
 		#print(newMainMeshes)
 		
-		LOD1Offs = 168 if isSF6 else 128 if (sGameName == "RERT" or sGameName == "RE8" or sGameName == "MHRise") else 136
+		LOD1Offs = 176 if (sGameName == "DD2" or sGameName == "AJ_AAT" or sGameName == "DRDR") else 168 if isMeshVer3 else 128 if (sGameName == "RERT" or sGameName == "RE8" or sGameName == "MHRise") else 136
 		
 		#header:
 		bs.writeUInt(1213416781) #MESH
-		if sGameName == "RE2" or sGameName == "RE3" or sGameName == "DMC5":
-			bs.writeUInt(386270720) #version no
-		elif sGameName == "RE8":
-			bs.writeUInt(2020091500)
-		elif sGameName == "MHRise":
-			bs.writeUInt(2007158797)
-		elif sGameName == "RERT":
-			bs.writeUInt(21041600)
-		elif isSF6 == 2: 
-			bs.writeUInt(220822879) #RE4R
-		elif isSF6 == True or True:
-			bs.writeUInt(220705151) #SF6 and all others
+		bs.writeUInt(formats[sGameName]["meshMagic"])
 			
 		bs.writeUInt(0) #Filesize
 		bs.writeUInt(0) #LODGroupHash
 		
-		if isSF6:
+		if isMeshVer3:
 			bs.writeUByte(3) #flag
-			bs.writeUByte(2) #solvedOffset
-			bs.writeUShort(0) #uknSF6
+			if sGameName == "DD2" or sGameName == "AJ_AAT" or sGameName == "DRDR":
+				bs.writeUByte(130) #solvedOffset
+				bs.writeUShort(84) #uknSF6
+			else:
+				bs.writeUByte(2) #solvedOffset
+				bs.writeUShort(0) #uknSF6
 			bs.writeUInt(len(mdl.bones) * bDoSkin + numMats) #Node Count
 			bs.writeUInt64(0) #ukn
 			bs.writeUInt64(LOD1Offs) #LODOffs
@@ -4963,6 +5247,9 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt64(0) #namesOffs
 			bs.writeUInt64(0) #verticesOffset
 			bs.writeUInt64(0) #ukn4/padding
+			if sGameName == "DD2":
+				bs.writeUInt64(0) #ukn5/padding
+			
 		else:
 			bs.writeUShort(3) #flag
 			bs.writeUShort(len(mdl.bones) * bDoSkin + numMats) #Node Count
@@ -5004,7 +5291,7 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt64(bs.tell()+8)
 		padToNextLine(bs)
 			
-		#Write LODGroup:
+		#Write LODGroup (DRDR fucks up here):
 		bs.writeUInt(len(newMainMeshes))
 		LODDist = openOptionsDialog.LODDist if openOptionsDialog else 0.02667995
 		bs.writeFloat(LODDist) #unknown, maybe LOD distance change
@@ -5032,9 +5319,13 @@ def meshWriteModel(mdl, bs):
 			for j, submesh in enumerate(mm[0]):
 				#print ("New mainmesh GroupID", mm[len(mm)-1], "submesh", j)
 				bs.writeUInt(submesh[0])
+				if sGameName == "DRDR":
+					bs.writeUInt(0)
 				bs.writeUInt(submesh[1])
 				bs.writeUInt(submesh[2])
 				bs.writeUInt(submesh[3])
+				if sGameName == "DRDR":
+					bs.writeUInt(0)
 				if sGameName != "RE7" and sGameName != "RE2" and sGameName != "RE3" and sGameName != "DMC5":
 					bs.writeUInt64(0)
 			pos = bs.tell()
@@ -5063,7 +5354,7 @@ def meshWriteModel(mdl, bs):
 		if bDoSkin:
 			boneRemapTable = []
 			
-			maxBoneMapLength = 256 if not isSF6 else 1024
+			maxBoneMapLength = 256 if sGameName != "SF6" else 1024
 			
 			if bAddNumbers and len(newSkinBoneMap) > 0:
 				boneMapLength = len(newSkinBoneMap)
@@ -5093,7 +5384,7 @@ def meshWriteModel(mdl, bs):
 			
 			if (len(boneRemapTable) > maxBoneMapLength):
 				print ("WARNING! Bone map is greater than", maxBoneMapLength, "bones!")
-			
+				
 			#write hierarchy
 			newHierarchyOffs = bs.tell()
 			for i, bone in enumerate(mdl.bones):
@@ -5118,7 +5409,7 @@ def meshWriteModel(mdl, bs):
 					cousinBoneName = bnName.replace('r_','l_')
 				elif bnName.startswith('l_'):
 					cousinBoneName = bnName.replace('l_','r_')
-				elif isSF6 or bnName.startswith("root") or bnName.startswith("cog") or bnName.startswith("hip") \
+				elif isMeshVer3 or bnName.startswith("root") or bnName.startswith("cog") or bnName.startswith("hip") \
 				or bnName.startswith("waist") or bnName.startswith("spine") or bnName.startswith("chest") \
 				or bnName.startswith("stomach") or bnName.startswith("neck") or bnName.startswith("head") \
 				or bnName.startswith("null_"):
@@ -5210,6 +5501,7 @@ def meshWriteModel(mdl, bs):
 		for i in range(numMats): 
 			bs.writeUInt64(nameStringsOffs)
 			nameStringsOffs += len(materialNames[i]) + 1
+			
 		if bDoSkin:
 			for i in range(len(mdl.bones)): 
 				bs.writeUInt64(nameStringsOffs)
@@ -5239,7 +5531,7 @@ def meshWriteModel(mdl, bs):
 		if bDoSkin:
 			for i in range(len(bonesList)): 
 				bs.writeString(bonesList[i])
-				names.append(bonesList[i])
+				names.append(bonesList[i]) 
 		if hasMorphs:
 			for i in range(len(morphNames)): 
 				bs.writeString(morphNames[i])
@@ -5251,6 +5543,14 @@ def meshWriteModel(mdl, bs):
 			createBShapeHdr(bs,morphLodsData)
 
 		if bDoSkin:
+			#Write unknown DD2 hashes
+			if isDD2Mesh:
+				DD2HashesOffset = bs.tell()
+				bs.writeUInt(2745047434)
+				for i in range(mainmeshCount - 1):
+					bs.writeUInt(0)
+				padToNextLine(bs)
+		
 			#write bounding boxes
 			newBBOffs = bs.tell()
 			bs.writeUInt64(len(newSkinBoneMap))
@@ -5287,6 +5587,7 @@ def meshWriteModel(mdl, bs):
 			bs.seek(vBuffHdrOffsLocation)
 			bs.writeUInt64(newVertBuffHdrOffs)
 		bs.seek(namesOffsLocation)
+		print(newNamesOffs)
 		if hasMorphs:
 			bs.seek(bsIndicesOffLocation)
 			bs.writeUInt64(newBShapesIndicesOffs)
@@ -5295,7 +5596,7 @@ def meshWriteModel(mdl, bs):
 		#fix vertexBufferHeader
 		bs.seek(newVertBuffHdrOffs)
 		
-		SF6SkipBytes = 0 if not isSF6 else 32
+		SF6SkipBytes = 0 if not isMeshVer3 else 32
 		newVertBuffOffs = newVertBuffHdrOffs + 72 + SF6SkipBytes + 8*bDoSkin + 8*bDoUV2 + 8*bDoColors + 2*RERTBytes
 		
 		bs.writeUInt64(bs.tell() + 48 + SF6SkipBytes + 2*RERTBytes)
@@ -5310,7 +5611,7 @@ def meshWriteModel(mdl, bs):
 		bs.writeUInt64(0)
 		bs.writeInt(-newVertBuffOffs)
 		
-		if isSF6:
+		if isMeshVer3:
 			for i in range(4):
 				bs.writeUInt64(0)
 		if sGameName == "RERT": # and (bs.tell() % 8) != 0:
@@ -5329,7 +5630,12 @@ def meshWriteModel(mdl, bs):
 	elif not bReWrite:
 		bs.writeBytes(f.readBytes(vertBuffOffs)) #copy to vertex buffer header
 		newVertBuffHdrOffs = bs.tell()
-
+	
+	if bDoSkin:
+		skinBoneMapNames = []
+		for b in range(len(boneRemapTable)):
+			bnName = names[boneInds[boneRemapTable[b]]]
+			skinBoneMapNames.append(bnName)
 	
 	vertexStrideStart = 0
 	submeshVertexCount = []
@@ -5338,6 +5644,10 @@ def meshWriteModel(mdl, bs):
 	submeshFaceStride = []
 	submeshFaceSize = []
 	boneWeightBBs = {}
+
+	for mesh in submeshes:
+		if len(mesh.morphList) > 0:
+			mesh.positions = mesh.morphList[0].positions
 
 	#Write vertex data
 	vertexPosStart = bs.tell()
@@ -5386,17 +5696,19 @@ def meshWriteModel(mdl, bs):
 				bs.writeHalfFloat(vcmp[1])
 
 	def writeBoneID(bID, i):
-		if isSF6 == True:
+		if sGameName == "SF6":
 			if i==3:
 				bs.writeBits(0, 2)
 			bs.writeBits(bID, 10)
 		else:
 			bs.writeUByte(bID)
 	
-	boneIdMax = 8 if not isSF6 else 6
+	boneIdMax = 6 if sGameName == "SF6" else 8
 	bnWeightStart = bs.tell()
 	
 	if bDoSkin:
+		doDD2Skin = isDD2Mesh and bDoSkin
+		
 		for m, mesh in enumerate(submeshes):
 			pos = bs.tell()
 			for vcmp in mesh.weights: #write 0's
@@ -5418,7 +5730,7 @@ def meshWriteModel(mdl, bs):
 					
 				for idx in range(len(vcmp.weights)):
 					if idx > boneIdMax:
-						if not isSF6: 
+						if not isMeshVer3: 
 							print ("Warning: ", mesh.name, "vertex", i,"exceeds the vertex weight limit of ", boneIdMax, "!", )
 						break
 					elif vcmp.weights[idx] != 0:				
@@ -5440,7 +5752,10 @@ def meshWriteModel(mdl, bs):
 				for idx in range(len(tupleList)):
 					bFind = False
 					for b in range(len(boneRemapTable)):
-						if names[boneInds[boneRemapTable[b]]] == bonesList[tupleList[idx][1]]:
+						bnName = names[boneInds[boneRemapTable[b]]]
+						#if doDD2Skin and "_Edit" in bnName:
+						#	bnName = ""
+						if bnName == bonesList[tupleList[idx][1]]:
 							writeBoneID(b, idx)
 							lastBone = b
 							bFind = True
@@ -5506,7 +5821,7 @@ def meshWriteModel(mdl, bs):
 				bs.writeUInt(submeshFaceCount[loopSubmeshCount])
 				bs.writeUInt(int(submeshFaceStride[loopSubmeshCount] / 2))
 				bs.writeUInt(submeshVertexStride[loopSubmeshCount])
-				if sGameName == "RERT" or sGameName == "REVerse" or sGameName == "MHRise" or sGameName == "RE8" or sGameName == "SF6" or sGameName == "RE4":
+				if formats[sGameName]["meshVersion"] >= 3 or sGameName == "RERT" or sGameName == "ReVerse" or sGameName == "MHRise" or sGameName == "RE8" or sGameName == "SF6" or sGameName == "RE4":
 					bs.seek(8, 1)
 				mainmeshVertexCount += submeshVertexCount[loopSubmeshCount]
 				mainmeshFaceCount += submeshFaceSize[loopSubmeshCount]
@@ -5516,15 +5831,15 @@ def meshWriteModel(mdl, bs):
 			bs.writeUInt(mainmeshFaceCount)
 		
 	#Fix vertex buffer header:
-	skipAmt = 16 if not isSF6 else 24
+	skipAmt = 16 if not isMeshVer3 else 24
 	fcBuffSize = faceDataEnd - vertexDataEnd
 	if bReWrite or bWriteBones:
 		bs.seek(newVertBuffHdrOffs+skipAmt) 
 	else: 
 		bs.seek(vBuffHdrOffs+skipAmt)
 	
-	if isSF6:
-		facesDiff = 0 if not bReWrite else (80 + 8*vertElemCount)
+	if isMeshVer3:
+		facesDiff = (80 + 8*vertElemCountB if bWriteBones else 0) if not bReWrite else (80 + 8*vertElemCount)
 		bs.writeUInt(faceDataEnd - vertexPosStart) #total buffer size
 		#print("faces offset", bs.tell(), vertexDataEnd, newVertBuffHdrOffs, facesDiff, vertexDataEnd - newVertBuffHdrOffs - facesDiff)
 		bs.writeUInt(vertexDataEnd - newVertBuffHdrOffs - facesDiff) #face buffer offset
@@ -5567,11 +5882,15 @@ def meshWriteModel(mdl, bs):
 		elif elementType == 5:
 			bs.writeUInt(colorsStart - vertexPosStart) 
 	
-	if isSF6: 
-		bs.seek(136)
+	if isMeshVer3: 
+		DD2amt = 8 if isDD2Mesh else 0
+		bs.seek(136 + int(DD2amt * 2))
 		bs.writeUInt64(vertElemHdrStart-16) #fix ukn3
-		bs.seek(152)
+		bs.seek(152 + DD2amt)
 		bs.writeUInt64(vertexPosStart) #fix Vertices offset
+		if isDD2Mesh:
+			bs.seek(144)
+			bs.writeUInt64(DD2HashesOffset)
 	
 	#fix main bounding box:
 	bs.seek(LOD1Offs+8+BBskipBytes)
@@ -5589,7 +5908,7 @@ def meshWriteModel(mdl, bs):
 	bs.writeFloat(sphereRadius * newScale) #Bounding Sphere radius
 	bs.writeBytes((min * newScale).toBytes()) #BBox min
 	bs.writeBytes((max * newScale).toBytes()) #BBox max
-	if isSF6:
+	if isMeshVer3:
 		bs.seek(-20,1); bs.writeUInt(1)
 		bs.seek(12,1); bs.writeUInt(1)
 	
@@ -5604,7 +5923,7 @@ def meshWriteModel(mdl, bs):
 				pos = mdl.bones[newSkinBoneMap[remappedBoneIdx]].getMatrix()[3]
 			except:
 				continue
-			bs.seek(newBBOffs+16+remappedBoneIdx*32)
+			bs.seek(newBBOffs+16+remappedBoneIdx*32) 
 			boneWeightBBs[idx] = [(box[0]-pos[0])*newScale, (box[1]-pos[1])*newScale, (box[2]-pos[2])*newScale, 1.0, (box[3]-pos[0])*newScale, (box[4]-pos[1])*newScale, (box[5]-pos[2])*newScale, 1.0]
 			box = boneWeightBBs[idx]
 			for coord in box:
@@ -5637,7 +5956,7 @@ def meshWriteModel(mdl, bs):
 			bitFlag = openOptionsDialog.flag
 		else:
 			bitFlag = 0x00
-			if bDoVFX or rapi.getOutputName().find("2109148288") != -1 or isSF6: 
+			if bDoVFX or rapi.getOutputName().find("2109148288") != -1 or isMeshVer3: 
 				bitFlag = bitFlag + 0x80
 			if bDoSkin: 
 				bitFlag = bitFlag + 0x03
@@ -5666,6 +5985,34 @@ def meshWriteModel(mdl, bs):
 		bs.writeUInt(0)
 		bs.seek(bsIndicesOffLocation)
 		bs.writeUInt(0)
+		
+		fileEnd = faceDataEnd
+		
+		if sGameName == "DD2" and bDoSkin:
+			bs.seek(12)
+			bs.writeUInt(2303293740) #Unknown
+			
+			#Extra weights buffer:
+			bs.seek(bnWeightStart)
+			bnWtBuffSz = colorsStart - bnWeightStart
+			weightBytes = bs.readBytes(bnWtBuffSz)
+			bs.seek(bnWeightStart)
+			dd2BoneIdx = skinBoneMapNames.index("Spine_1") if "Spine_1" in skinBoneMapNames else 0
+			
+			for i in range(int(bnWtBuffSz / 16)):
+				bID = bs.readUByte()
+				bs.seek(-1, 1)
+				bs.writeUInt64(0)
+				bs.writeUInt64(255)
+			bs.seek(fileEnd)
+			padToNextLine(bs)
+			exWeightsBuffStart = bs.tell()
+			bs.writeBytes(weightBytes)
+			fileEnd = bs.tell()
+			bs.seek(newVertBuffHdrOffs+16) 
+			bs.writeUInt64(exWeightsBuffStart)
+			bs.seek(newVertBuffHdrOffs+48) 
+			bs.writeUInt64(bnWtBuffSz)
 
 	#fileSize
 	bs.seek(8)
